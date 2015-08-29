@@ -1,0 +1,167 @@
+fileFormatVersion: 2
+guid: 4dc7f006bc27bb04b978eedcbe48ba98
+timeCreated: 1436133541
+licenseType: Free
+ModelImporter:
+  serializedVersion: 18
+  fileIDToRecycleName:
+    100000: //RootNode
+    100002: bush_acdc
+    100004: bush_back_case_part
+    100006: bush_back_part
+    100008: bush_black_space
+    100010: bush_buttons
+    100012: bush_case
+    100014: bush_case_frame
+    100016: bush_display_white_frame
+    100018: bush_front_camera
+    100020: bush_glass
+    100022: bush_grill
+    100024: bush_hdmi
+    100026: bush_logo
+    100028: bush_minijack
+    100030: bush_rear_cam
+    100032: bush_screen
+    100034: bush_screen_frame
+    100036: bush_tf_card
+    100038: bush_usb
+    400000: //RootNode
+    400002: bush_acdc
+    400004: bush_back_case_part
+    400006: bush_back_part
+    400008: bush_black_space
+    400010: bush_buttons
+    400012: bush_case
+    400014: bush_case_frame
+    400016: bush_display_white_frame
+    400018: bush_front_camera
+    400020: bush_glass
+    400022: bush_grill
+    400024: bush_hdmi
+    400026: bush_logo
+    400028: bush_minijack
+    400030: bush_rear_cam
+    400032: bush_screen
+    400034: bush_screen_frame
+    400036: bush_tf_card
+    400038: bush_usb
+    2300000: bush_acdc
+    2300002: bush_back_case_part
+    2300004: bush_back_part
+    2300006: bush_black_space
+    2300008: bush_buttons
+    2300010: bush_case
+    2300012: bush_case_frame
+    2300014: bush_display_white_frame
+    2300016: bush_front_camera
+    2300018: bush_glass
+    2300020: bush_grill
+    2300022: bush_hdmi
+    2300024: bush_logo
+    2300026: bush_minijack
+    2300028: bush_rear_cam
+    2300030: bush_screen
+    2300032: bush_screen_frame
+    2300034: bush_tf_card
+    2300036: bush_usb
+    3300000: bush_acdc
+    3300002: bush_back_case_part
+    3300004: bush_back_part
+    3300006: bush_black_space
+    3300008: bush_buttons
+    3300010: bush_case
+    3300012: bush_case_frame
+    3300014: bush_display_white_frame
+    3300016: bush_front_camera
+    3300018: bush_glass
+    3300020: bush_grill
+    3300022: bush_hdmi
+    3300024: bush_logo
+    3300026: bush_minijack
+    3300028: bush_rear_cam
+    3300030: bush_screen
+    3300032: bush_screen_frame
+    3300034: bush_tf_card
+    3300036: bush_usb
+    4300000: bush_usb
+    4300002: bush_tf_card
+    4300004: bush_screen_frame
+    4300006: bush_screen
+    4300008: bush_rear_cam
+    4300010: bush_minijack
+    4300012: bush_logo
+    4300014: bush_hdmi
+    4300016: bush_grill
+    4300018: bush_glass
+    4300020: bush_front_camera
+    4300022: bush_display_white_frame
+    4300024: bush_case_frame
+    4300026: bush_case
+    4300028: bush_buttons
+    4300030: bush_black_space
+    4300032: bush_back_part
+    4300034: bush_back_case_part
+    4300036: bush_acdc
+    9500000: //RootNode
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    optimizeGameObjects: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 1
+    animationRotationError: .5
+    animationPositionError: .5
+    animationScaleError: .5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    splitTangentsAcrossUV: 1
+    normalImportMode: 0
+    tangentImportMode: 1
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    human: []
+    skeleton: []
+    armTwist: .5
+    foreArmTwist: .5
+    upperLegTwist: .5
+    legTwist: .5
+    armStretch: .0500000007
+    legStretch: .0500000007
+    feetSpacing: 0
+    rootMotionBoneName: 
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
