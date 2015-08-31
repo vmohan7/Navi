@@ -21,7 +21,7 @@ using UnityEngine.UI;
 using System.Collections;
 
 /// <summary>
-///  This script controlls showing the user instructions on how to use the device
+///  This script controls showing the user instructions on how to use the device
 /// </summary>
 public class NaviInstructions : MonoBehaviour {
 
@@ -31,7 +31,7 @@ public class NaviInstructions : MonoBehaviour {
 	public Text instructionPanel;
 
 	//all the instructions
-	private const string searchInstructions = "Searching for Tango on Local Network";
+	private const string searchInstructions = "Searching for Navi app running on Android device in same Local Network...";
 	private const string acceptPermissionInstruction = "Check your tango to accept permissions. Tap to continue.";
 	private const string tiltUpDownInstruction = "Tilt your device up and down to control the y-direction of your virtual device.";
 	private const string tiltRightLeftInstruction = "Tilt your device left and right to control the x-direction of your virtual device.";
