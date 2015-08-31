@@ -19,11 +19,10 @@ If you have an Oculus DK2 and an Android powered device (iOS coming shortly), do
 
 ## Contributing
 
-We welcome pull requests from everyone in the community. Pick an issue nobody is working and go for it! If you find an issue, go ahead and report it or better yet, if you think you can fix it, be our guest :) . When your pull request gets merged into the project, we will add you name to the contributors list.
+We welcome pull requests from everyone in the community. Pick an issue nobody is working and go for it! If you find an issue, go ahead and report it or better yet, if you think you can fix it, be our guest :) . When your pull request gets merged into the project, we will add you name to the contributors list. Feel free to join the [Google Group](https://groups.google.com/forum/#!forum/navi-io) to discuss the possibilites of this input solution.
 
 ## Coming Soon
 
 - Source Code for Navi mobile app
 - Upcoming features list
-- Google Group for group discussion
 
