@@ -6,7 +6,7 @@
 
 ## Try it out
 
-If you have an Oculus DK2 and an Android powered device (iOS coming shortly), download the demos on to your PC and install [the Navi App](https://play.google.com/store/apps/details?id=com.navi.io) from Google Play onto your Android device. Currently, I have developed [a Pirate Ship Demo](https://github.com/vmohan7/NaviPirateDemo) and [a Space Demo](https://github.com/vmohan7/NaviSpaceDemo) (builds are located in the github repo under Build or at the link located in the README of each respective github page). Make sure that both devices are connected to the same wireless network and they will automatically pair up. 
+If you have an Oculus DK2 and an Android powered device (iOS coming shortly - you can make a build by compiling the NaviMobile Unity project), download the demos on to your PC and install [the Navi App](https://play.google.com/store/apps/details?id=com.navi.io) from Google Play onto your Android device. Currently, I have developed [a Pirate Ship Demo](https://github.com/vmohan7/NaviPirateDemo) and [a Space Demo](https://github.com/vmohan7/NaviSpaceDemo) (builds are located in the github repo under Build or at the link located in the README of each respective github page). Make sure that both devices are connected to the same wireless network and they will automatically pair up. 
 
 ## Quick Start
 
@@ -23,6 +23,5 @@ We welcome pull requests from everyone in the community. Pick an issue nobody is
 
 ## Coming Soon
 
-- Source Code for Navi mobile app
 - Upcoming features list
 
