@@ -6,7 +6,7 @@
 
 ## Try it out
 
-If you have an Oculus DK2 and an Android powered device (iOS coming shortly), download the demos (source code coming soon) that are a part of this repository on to your PC and install [the Navi App](https://play.google.com/store/apps/details?id=com.navi.io) from Google Play onto your Android device. Make sure that both devices are connected to the same wireless network and they will automatically pair up. 
+If you have an Oculus DK2 and an Android powered device (iOS coming shortly), download the demos on to your PC and install [the Navi App](https://play.google.com/store/apps/details?id=com.navi.io) from Google Play onto your Android device. Currently, I have developed [a Pirate Ship Demo](https://github.com/vmohan7/NaviPirateDemo) and [a Space Demo](https://github.com/vmohan7/NaviSpaceDemo) (builds are located in the github repo under Build or at the link located in the README of each respective github page). Make sure that both devices are connected to the same wireless network and they will automatically pair up. 
 
 ## Quick Start
 
@@ -19,12 +19,10 @@ If you have an Oculus DK2 and an Android powered device (iOS coming shortly), do
 
 ## Contributing
 
-We welcome pull requests from everyone in the community. Pick an issue nobody is working and go for it! If you find an issue, go ahead and report it or better yet, if you think you can fix it, be our guest :) . When your pull request gets merged into the project, we will add you name to the contributors list.
+We welcome pull requests from everyone in the community. Pick an issue nobody is working and go for it! If you find an issue, go ahead and report it or better yet, if you think you can fix it, be our guest :) . When your pull request gets merged into the project, we will add you name to the contributors list. Feel free to join the [Google Group](https://groups.google.com/forum/#!forum/navi-io) to discuss the possibilites of this input solution.
 
 ## Coming Soon
 
-- Source Code for Pirate Demo
-- Source Code for Space Demo
 - Source Code for Navi mobile app
-- Upcoming feature list
+- Upcoming features list
 
