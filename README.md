@@ -1,12 +1,12 @@
 # Navi
 
-**Navi** is an innovative input solution for Virtual Reality. Use your tablet or smartphone as your controller for your virtual environment. Potential use cases include pairing with a GearVR, Google Cardboard with straps, or even an Oculus Rift DK2. While I think that this usage of smart devices is great for VR, this solution is generic enough to work with PC based games. 
+**Navi** is a new innovative input solution for Virtual Reality. Use your tablet or smartphone as your controller in your virtual environment. Potential use cases include pairing with a GearVR, Google Cardboard with straps, or even an Oculus Rift DK2. While I think that this usage of smart devices is great for VR, this solution is generic enough to work with PC based games. 
 
-**Navi** is a spin-off of my prototype that I wrote for the Google Project Tango contest. It is written in Unity 5.1 and uses the Unity 5 Transport API to transfer rotational (and positional, if supported in the case of Project Tango Dev Kit) data from a smart device to your PC. In addition, it also supports sending touch data. All the code is licensed under the GPLv3
+**Navi** is a spin-off of my prototype that I wrote for the Google Project Tango contest. It is written in Unity 5.1 and uses the Unity 5 Transport API to transfer rotational (and positional, if supported in the case of Project Tango Dev Kit) data from a smart device to your PC. In addition, it also supports sending touch data. All the code is licensed under GPLv3.
 
 ## Try it out
 
-If you have an Oculus DK2 and an Android powered device (iOS coming shortly - you can make a build by compiling the NaviMobile Unity project), download the demos on to your PC and install [the Navi App](https://play.google.com/store/apps/details?id=com.navi.io) from Google Play onto your Android device. Currently, I have developed [a Pirate Ship Demo](https://github.com/vmohan7/NaviPirateDemo) and [a Space Demo](https://github.com/vmohan7/NaviSpaceDemo) (the demo applications are located in the release or click the link located in the README of each respective github page). Make sure that both devices are connected to the same wireless network and they will automatically pair up. 
+If you have an Oculus DK2 and an Android powered device (iOS coming shortly - if you are feeling up to it, make a build by compiling the NaviMobile Unity project for iOS), download the demos on to your PC and install [the Navi App](https://play.google.com/store/apps/details?id=com.navi.io) from Google Play onto your Android device. Currently, I have developed two demos: [Pirate Defense](https://github.com/vmohan7/NaviPirateDemo) and [Jelly Fling](https://github.com/vmohan7/NaviSpaceDemo) (Download links for the .exe are located in the README of each respective github page). Make sure that both devices are connected to the same wireless network and they will automatically pair up. 
 
 ## Quick Start
 
