@@ -23,5 +23,8 @@ We welcome pull requests from everyone in the community. Pick an issue nobody is
 
 ## Coming Soon
 
+- Use video
 - Upcoming features list
+- iOS build
+- Website
 
