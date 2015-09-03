@@ -8,6 +8,10 @@
 
 If you have an Oculus DK2 and an Android powered device (iOS coming shortly - if you are feeling up to it, make a build by compiling the NaviMobile Unity project for iOS), download the demos on to your PC and install [the Navi App](https://play.google.com/store/apps/details?id=com.navi.io) from Google Play onto your Android device. Currently, I have developed two demos: [Pirate Defense](https://github.com/vmohan7/NaviPirateDemo) and [Jelly Fling](https://github.com/vmohan7/NaviSpaceDemo) (Download links for the .exe are located in the README of each respective github page). Make sure that both devices are connected to the same wireless network and they will automatically pair up. 
 
+Here is a short video I made that steps through the process of setting it up: 
+[https://www.youtube.com/watch?v=32SZAMq16QY](
+https://www.youtube.com/watch?v=32SZAMq16QY)
+
 ## Quick Start
 
 > 1. The NaviSDK folder is a Unity 5.1 project. After forking the project, you can open the project in Unity 5.1 or greater (both free and pro versions should work). 
