@@ -17,13 +17,16 @@ If you have an Oculus DK2 and an Android powered device (iOS coming shortly - if
 > 5. Congratualations! You have succesfully paired the devices and can now begin development. 
 > 6. To develop your own content, create a new scene and add it to the build settings. Rerun the PCMainScene, it should now load your scene once you complete all the instructions (or whenever you tap with 5 fingers to reset).
 
+## Documentation
+
+All the code has been commented in the XML format recommended for C#. I am hoping to put some of that information on [the Wiki](https://github.com/vmohan7/Navi/wiki) as well as more generic documentation on how setup works (i.e. [how the networking is implemented](https://github.com/vmohan7/Navi/wiki/High-Level-Overview-of-Network-Handshake-between-SDK-and-Mobile-App)).  Feel free to add any information that you think is missing to the wiki. 
+
 ## Contributing
 
 We welcome pull requests from everyone in the community. Pick an issue nobody is working and go for it! If you find an issue, go ahead and report it or better yet, if you think you can fix it, be our guest :) . When your pull request gets merged into the project, we will add you name to the contributors list. Feel free to join the [Google Group](https://groups.google.com/forum/#!forum/navi-io) to discuss the possibilites of this input solution.
 
 ## Coming Soon
 
-- Use video
 - Upcoming features list
 - iOS build
 - Website
