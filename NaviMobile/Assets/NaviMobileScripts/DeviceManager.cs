@@ -30,11 +30,17 @@ public class DeviceManager : MonoBehaviour {
 	/// NOTE: These managers must inherit from TransformManagerInterface so that the proper Instance variable is accessed
 	/// </summary>
 	void Awake () {
+		#if !UNITY_IOS
 		if (AndroidHelper.IsTangoCorePresent ()) {
 			this.gameObject.AddComponent<PoseManager> ();
 		} else {
 			this.gameObject.AddComponent<GyroManager> ();
 		}
+		#endif
+		
+		#if UNITY_IOS
+			this.gameObject.AddComponent<GyroManager> ();
+		#endif
 
 		this.enabled = false; //this script is no longer needed so we can disable ourselves
 	}

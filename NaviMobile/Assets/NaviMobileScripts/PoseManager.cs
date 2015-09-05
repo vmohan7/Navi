@@ -1,4 +1,5 @@
-﻿/*
+﻿#if !UNITY_IOS
+/*
  * This file is part of Navi.
  * Copyright 2015 Vasanth Mohan. All Rights Reserved.
  * 
@@ -228,3 +229,4 @@ public class PoseManager : TransformManagerInterface , ITangoPose {
 	}
 	
 }
+#endif

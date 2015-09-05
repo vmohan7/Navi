@@ -1,3 +1,4 @@
+#if !UNITY_IOS
 /*
  * Copyright 2014 Google Inc. All Rights Reserved.
  *
@@ -979,3 +980,4 @@ namespace Tango
         #endregion // NATIVE_FUNCTIONS
     }
 }
+#endif

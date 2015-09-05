@@ -1,4 +1,5 @@
-﻿/*
+﻿#if !UNITY_IOS
+/*
  * Copyright 2014 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -230,3 +231,4 @@ namespace Tango
         }
     }
 }
+#endif

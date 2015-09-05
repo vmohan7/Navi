@@ -1,4 +1,5 @@
-﻿#if UNITY_ANDROID && !UNITY_EDITOR
+﻿#if !UNITY_IOS
+#if UNITY_ANDROID && !UNITY_EDITOR
 #define ANDROID_DEVICE
 #endif
 /*
@@ -381,3 +382,4 @@ public partial class AndroidHelper : MonoBehaviour
         #endif
     }
 }
+#endif
