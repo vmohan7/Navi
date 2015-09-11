@@ -32,11 +32,9 @@ public class NaviInstructions : MonoBehaviour {
 
 	//all the instructions
 	private const string searchInstructions = "Searching for Navi app running on Android device in same Local Network...";
-	private const string acceptPermissionInstruction = "Check your tango to accept permissions. Tap to continue.";
+	private const string acknowledgeConnection = "Hold you device horizontally. Tap to continue when you are ready.";
 	private const string tiltUpDownInstruction = "Tilt your device up and down to control the y-direction of your virtual device.";
 	private const string tiltRightLeftInstruction = "Tilt your device left and right to control the x-direction of your virtual device.";
-	private const string doubleTapInstruction = "Double tap the device to toggle full positonal tracking.";
-	private const string doubleTapAgainInstruction = "Double tap again when you are done experimenting with this mode.";
 	private const string resetInstructions = "Face forward with your tablet facing your chest and tap with your right 5 fingers to reset orientation and begin!";
 
 	/// <summary>
@@ -76,11 +74,12 @@ public class NaviInstructions : MonoBehaviour {
 	/// Coroutine to guide the user through the instructions on how to use their smart device
 	/// </summary>
 	IEnumerator InstructionGuide(){
-		SetInstruction (acceptPermissionInstruction);
+		SetInstruction (acknowledgeConnection);
 		TouchManager.OnTouchUp += OnPermissionTap;
 		while (!permissionInstruction) {
 			yield return new WaitForFixedUpdate();
 		}
+		NaviConnectionSDK.Instance.ResetVR ();
 		TouchManager.OnTouchUp -= OnPermissionTap;
 		
 		Instantiate (devicePrefab, Camera.main.transform.position, new Quaternion ());
@@ -96,19 +95,6 @@ public class NaviInstructions : MonoBehaviour {
 		while (Mathf.Abs(NaviDeviceLocation.DeviceLocation.rotation.eulerAngles.y - 180f) > TurnMargin) {
 			yield return new WaitForFixedUpdate(); //wait until they move up and down
 		}
-		
-		SetInstruction (doubleTapInstruction);
-		TouchManager.OnDoubleTap += OnToggleTap;
-		while (!toggleTapInstruction) {
-			yield return new WaitForSeconds(.1f);
-		}
-		
-		toggleTapInstruction = false;
-		SetInstruction (doubleTapAgainInstruction);
-		while (!toggleTapInstruction) {
-			yield return new WaitForSeconds(.1f);
-		}
-		TouchManager.OnDoubleTap -= OnToggleTap;
 		
 		SetInstruction (resetInstructions);
 	}

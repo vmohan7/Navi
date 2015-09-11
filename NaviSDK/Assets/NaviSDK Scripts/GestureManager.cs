@@ -34,6 +34,23 @@ public class GestureManager : MonoBehaviour {
 	public static event MultiFingerAction OnFiveFingerTap;
 	public static event MultiFingerAction OnSixFingerTap;
 
+	//Swipe detection events & variables
+	public delegate void SwipeAction();
+	public static event SwipeAction SwipeLeft;
+	public static event SwipeAction SwipeRight;
+	public static event SwipeAction SwipeUp;
+	public static event SwipeAction SwipeDown;
+	
+	private const int MAX_STATIONARY_FRAMES = 6; //maximum number of stay events for a swipe
+	private const int MIN_SWIPE_DIST = 300; //distance for it to be considered a swipe
+	private const int MAX_SWIPE_TIME = 10; //number of seconds before it is not a swipe anymores
+	
+	private bool couldBeSwipe = false; //determine if it is a swipe
+	private Vector2 swipeStartPos = Vector2.zero; //start of swipe
+	private int stationaryForFrames = 0; //number of stationary frames in swipe
+	private float swipeStartTime = 0f; //time swipe started
+
+
 	/// <summary>
 	/// First function that is called when scene is loading
 	/// </summary>
@@ -47,6 +64,8 @@ public class GestureManager : MonoBehaviour {
 	void Start () {
 		TouchManager.OnTouchDown += HandleOnTouchDown;
 		TouchManager.OnTouchUp += HandleOnTouchUp;
+
+		TouchManager.OnTouchStayed += HandleOnTouchStay;
 	}
 
 	/// <summary>
@@ -55,6 +74,9 @@ public class GestureManager : MonoBehaviour {
 	void OnDestroy(){
 		TouchManager.OnTouchDown -= HandleOnTouchDown;
 		TouchManager.OnTouchUp -= HandleOnTouchUp;
+
+		TouchManager.OnTouchStayed -= HandleOnTouchStay;
+
 	}
 
 	/// <summary>
@@ -81,6 +103,12 @@ public class GestureManager : MonoBehaviour {
 			numFingersDown = 0; //something went wrong
 
 		numFingersDown++;
+
+		//for swipes
+		couldBeSwipe = true;
+		swipeStartPos = pos;  //Position where the touch started
+		swipeStartTime = Time.time; //The time it started
+		stationaryForFrames = 0;
 	}
 	
 	/// <summary>
@@ -89,8 +117,39 @@ public class GestureManager : MonoBehaviour {
 	private void HandleOnTouchUp (int fingerID, Vector2 pos)
 	{
 		numFingersDown--;
-
+		
 		if (numFingersDown < 0)
 			numFingersDown = 0; //something went wrong
+		
+		float swipeTime = Time.time - swipeStartTime; //Time the touch stayed at the screen till now.
+		if (couldBeSwipe && swipeTime < MAX_SWIPE_TIME) {
+			float xSwipeDist = pos.x - swipeStartPos.x; //X Swipe distance
+			float ySwipeDist = pos.y - swipeStartPos.y; //Y Swipe distance
+			
+			if (Mathf.Abs(xSwipeDist) > MIN_SWIPE_DIST) { //only one swipe allowed at a time
+				if (xSwipeDist < 0 && SwipeLeft != null)
+					SwipeLeft();
+				else if (xSwipeDist >= 0 && SwipeRight != null)
+					SwipeRight();
+			}
+			else if (Mathf.Abs(ySwipeDist) > MIN_SWIPE_DIST) {
+				if (ySwipeDist < 0 && SwipeDown != null)
+					SwipeDown();
+				else if (ySwipeDist >= 0 && SwipeUp != null)
+					SwipeUp();
+			}
+		}
 	}
+
+	/// <summary>
+	/// Callback for when a touch stays in the same position
+	/// </summary>
+	private void HandleOnTouchStay (int fingerID, Vector2 pos)
+	{
+		stationaryForFrames++;
+		if (couldBeSwipe && stationaryForFrames > MAX_STATIONARY_FRAMES) {
+			couldBeSwipe = false;
+		}
+	}
+
 }
