@@ -79,7 +79,6 @@ public class NaviInstructions : MonoBehaviour {
 		while (!permissionInstruction) {
 			yield return new WaitForFixedUpdate();
 		}
-		NaviConnectionSDK.Instance.ResetVR ();
 		TouchManager.OnTouchUp -= OnPermissionTap;
 		
 		Instantiate (devicePrefab, Camera.main.transform.position, new Quaternion ());
