@@ -32,7 +32,7 @@ public class NaviInstructions : MonoBehaviour {
 
 	//all the instructions
 	private const string searchInstructions = "Searching for Navi app running on Android device in same Local Network...";
-	private const string acknowledgeConnection = "Hold you device horizontally. Tap to continue when you are ready.";
+	private const string acknowledgeConnection = "Hold your device horizontally. Tap to continue when you are ready.";
 	private const string tiltUpDownInstruction = "Tilt your device up and down to control the y-direction of your virtual device.";
 	private const string tiltRightLeftInstruction = "Tilt your device left and right to control the x-direction of your virtual device.";
 	private const string resetInstructions = "Face forward with your tablet facing your chest and tap with your right 5 fingers to reset orientation and begin!";
