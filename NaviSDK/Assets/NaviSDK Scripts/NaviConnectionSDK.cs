@@ -50,6 +50,9 @@ public class NaviConnectionSDK : MonoBehaviour {
 	public delegate void PoseAction(Vector3 position, Quaternion rotation);
 	public static event PoseAction OnPoseData;
 
+	public delegate void HMDResetAction();
+	public static event HMDResetAction OnResetHMD; //add your event here in case you want to do anything special on recenterting
+
 	//currently we only support two types of connections: one to send pose data and another to send touch data via RPC
 	public const int NUM_CONNECTIONS = 2;
 	
@@ -90,7 +93,10 @@ public class NaviConnectionSDK : MonoBehaviour {
 	/// This method is mapped to a 5 finger tap. So whenever a user taps with 5 fingers they will be reset
 	/// </summary>
 	public void ResetVR() {
-		UnityEngine.VR.InputTracking.Recenter ();
+		//
+		if (OnResetHMD != null)
+			OnResetHMD (); 
+
 		ResetDevice ();
 		
 		if (OnGameStart != null && initalReset) {
@@ -111,6 +117,8 @@ public class NaviConnectionSDK : MonoBehaviour {
 	/// First function that is called when scene is loading
 	/// </summary>
 	void Awake(){
+		OnResetHMD += UnityEngine.VR.InputTracking.Recenter; //defaults to recenter DK2 or GearVR
+
 		if (Instance == null)
 			Instance = this;
 
@@ -294,7 +302,8 @@ public class NaviConnectionSDK : MonoBehaviour {
 	/// Method that is called when a smart device connects
 	/// </summary>
 	private void DeviceConnected(){
-		UnityEngine.VR.InputTracking.Recenter ();
+		if (OnResetHMD != null)
+			OnResetHMD ();
 		GestureManager.OnFiveFingerTap += ResetVR; //enable reset at any time
 	}
 }
