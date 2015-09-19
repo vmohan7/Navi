@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Navi.
  * Copyright 2015 Vasanth Mohan. All Rights Reserved.
  * 
@@ -54,11 +54,15 @@ public class NaviConnectionSDK : MonoBehaviour {
 	public static event HMDResetAction OnResetHMD; //add your event here in case you want to do anything special on recenterting
 
 	//currently we only support two types of connections: one to send pose data and another to send touch data via RPC
-	public const int NUM_CONNECTIONS = 2;
+	public const int NUM_CONNECTIONS = 1;
 	
 	public const int SERVER_PORT = 8888;
 	public const int UDP_SERVER_PORT = 1204;
 	public const int REMOTE_PORT = 19784;
+
+	private const int BUFFER_SIZE = 1024;
+
+	private const int SDK_BUILD_NO = 1; //current SDK version ID that will be sent to the mobile app for proper sync
 
 	//keywords that trigger events on the smart device
 	private const string SEND_DATA_METHOD_STR = "SendData";
@@ -66,6 +70,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 	
 	private const string POSE_MESSAGE_ID = "Pose";
 	private const string TOUCH_MESSAGE_ID = "Touch";
+	private const string BUILD_MESSAGE_ID = "BuildNo";
 	
 	private const string TOUCH_METHOD_ID = "TouchIO";
 	private const string SET_SIZE_METHOD_ID = "SetSize";
@@ -143,11 +148,10 @@ public class NaviConnectionSDK : MonoBehaviour {
 		int recHostId; 
 		int connectionId; 
 		int channelId; 
-		byte[] recBuffer = new byte[1024]; 
-		int bufferSize = 1024;
+		byte[] recBuffer = new byte[BUFFER_SIZE]; 
 		int dataSize;
 		byte error;
-		NetworkEventType recData = NetworkTransport.Receive(out recHostId, out connectionId, out channelId, recBuffer, bufferSize, out dataSize, out error);
+		NetworkEventType recData = NetworkTransport.Receive(out recHostId, out connectionId, out channelId, recBuffer, BUFFER_SIZE, out dataSize, out error);
 		while (recData != NetworkEventType.Nothing) { 
 			//TODO add some limit so that it does not stall from this while loop i.e. 1000 loops or something
 			switch (recData) {
@@ -168,7 +172,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 				break;
 			}
 
-			recData = NetworkTransport.Receive(out recHostId, out connectionId, out channelId, recBuffer, bufferSize, out dataSize, out error);
+			recData = NetworkTransport.Receive(out recHostId, out connectionId, out channelId, recBuffer, BUFFER_SIZE, out dataSize, out error);
 		}
 	}
 
@@ -244,16 +248,18 @@ public class NaviConnectionSDK : MonoBehaviour {
 			touchConnectionID = connectionID;
 			message = TOUCH_MESSAGE_ID;
 
-			if (OnDeviceConnected != null)
-				OnDeviceConnected();
 		}
 
 		byte error;
-		byte[] buffer = new byte[1024];
+		byte[] buffer = new byte[BUFFER_SIZE];
 		Stream stream = new MemoryStream(buffer);
 		BinaryFormatter formatter = new BinaryFormatter();
 		formatter.Serialize(stream, message);
-		NetworkTransport.Send(socketID, connectionID, myReiliableChannelId, buffer, 1024, out error); //send full buffer
+		NetworkTransport.Send(socketID, connectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error); //send full buffer
+
+		if (tangoPoseConnectionID >= 0 && touchConnectionID >= 0 && OnDeviceConnected != null) {
+			OnDeviceConnected ();
+		}
 	}
 
 	/// <summary>
@@ -305,5 +311,18 @@ public class NaviConnectionSDK : MonoBehaviour {
 		if (OnResetHMD != null)
 			OnResetHMD ();
 		GestureManager.OnFiveFingerTap += ResetVR; //enable reset at any time
+
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = BUILD_MESSAGE_ID;
+		rpc.args = new object[1];
+		rpc.args[0] = SDK_BUILD_NO; 
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, touchConnectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error);
 	}
 }

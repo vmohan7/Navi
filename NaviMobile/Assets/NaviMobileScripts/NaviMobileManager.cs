@@ -43,6 +43,7 @@ public class NaviMobileManager : MonoBehaviour {
 	public static NaviMobileManager Instance; //the single instance of this class
 
 	private UdpClient receiver; //the object that connects to the VR device
+	private int SDKBuildNo = 1; //set by the NaviSDK via a Network connection once the channels are setup
 
 	[HideInInspector]
 	public int socketID;
@@ -75,6 +76,8 @@ public class NaviMobileManager : MonoBehaviour {
 	private const string POSE_MESSAGE_ID = "Pose";
 	private const string TOUCH_MESSAGE_ID = "Touch";
 	private const string VIDEO_MESSAGE_ID = "Video";
+
+	private const string BUILD_MESSAGE_ID = "BuildNo";
 
 	private const string TOUCH_METHOD_ID = "TouchIO";
 	private const string SET_SIZE_METHOD_ID = "SetSize";
@@ -126,7 +129,11 @@ public class NaviMobileManager : MonoBehaviour {
 				BinaryFormatter formatter = new BinaryFormatter();
 				string message = formatter.Deserialize(stream) as string;
 				AssignID(connectionId, message);
-			} 
+			} else {
+				if (connectionId == touchConnectionID) {
+					HandleRPC (recBuffer);
+				}
+			}
 
 			break;
 		case NetworkEventType.DisconnectEvent:
@@ -194,6 +201,22 @@ public class NaviMobileManager : MonoBehaviour {
 			NetworkTransport.Send (socketID, touchConnectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error);
 		}
 	}
+
+	/// <summary>
+	/// Method to parse and send an RPC event from smart device such as recieving touch input
+	/// </summary>
+	/// <param name="recBuffer">The data that was recieved from the smart device</param>
+	private void HandleRPC(byte[] recBuffer){
+		Stream stream = new MemoryStream(recBuffer);
+		BinaryFormatter formatter = new BinaryFormatter();
+		RPCSerializer rpcData = (RPCSerializer) formatter.Deserialize(stream);
+		
+		if (rpcData.methodName.Equals (BUILD_MESSAGE_ID)) {
+			SDKBuildNo = (int) rpcData.args[0];
+		}
+		
+	}
+
 
 	/// <summary>
 	/// This method handles when the VR display disconnects in order to restart the app and listen for a new connection
