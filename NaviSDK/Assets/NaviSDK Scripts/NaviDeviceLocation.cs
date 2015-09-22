@@ -51,6 +51,7 @@ public class NaviDeviceLocation : MonoBehaviour {
 	/// </summary>
 	void Start () {
 		NaviConnectionSDK.OnPoseData += OnPoseData;
+		NaviConnectionSDK.OnDeviceDisconnected += OnDeviceDisconnect;
 		DontDestroyOnLoad (this.gameObject);
 	}
 
@@ -60,6 +61,14 @@ public class NaviDeviceLocation : MonoBehaviour {
 	void OnDestroy(){
 		DeviceLocation = null;
 		NaviConnectionSDK.OnPoseData -= OnPoseData;
+		NaviConnectionSDK.OnDeviceDisconnected -= OnDeviceDisconnect;
+	}
+
+	/// <summary>
+	/// Callback for when Device disconnects, so we connect to new device location object
+	/// </summary>
+	private void OnDeviceDisconnect(){
+		Destroy (this.gameObject);
 	}
 
 	//TODO: add some sort of prediction using velocity

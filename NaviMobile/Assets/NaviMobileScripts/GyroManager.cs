@@ -51,8 +51,6 @@ public class GyroManager : TransformManagerInterface {
 			ComputeRotation (out tempRot);
 			transform.rotation = Quaternion.Inverse (initalRotation) * tempRot;
 		}
-
-		//Debug.LogError (Input.acceleration);
 	}
 
 	/// <summary>

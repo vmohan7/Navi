@@ -54,7 +54,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 	public static event HMDResetAction OnResetHMD; //add your event here in case you want to do anything special on recenterting
 
 	//currently we only support two types of connections: one to send pose data and another to send touch data via RPC
-	public const int NUM_CONNECTIONS = 1;
+	public const int NUM_CONNECTIONS = 2;
 	
 	public const int SERVER_PORT = 8888;
 	public const int UDP_SERVER_PORT = 1204;
