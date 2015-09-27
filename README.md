@@ -6,7 +6,7 @@
 
 ## Try it out
 
-If you have an Oculus DK2 and an Android powered device (iOS pending on app store - send me a message if you would like to be added to the external testers), download the demos on to your PC and install [the Navi App](https://play.google.com/store/apps/details?id=com.navi.io) from Google Play onto your Android device. Currently, I have developed two demos: [Pirate Defense](https://github.com/vmohan7/NaviPirateDemo) and [Jelly Fling](https://github.com/vmohan7/NaviSpaceDemo) (Download links for the .exe are located in the README of each respective github page). Make sure that both devices are connected to the same wireless network and they will automatically pair up. 
+If you have an Oculus DK2 and an mobile phone or tablet, download the demos on to your PC and install the Navi App from [Google Play](https://play.google.com/store/apps/details?id=com.navi.io) or the [iOS App Store](https://itunes.apple.com/us/app/navi-for-ios/id1037575305?ls=1&mt=8) onto your mobile device. Currently, I have developed three demos: [Pirate Defense](https://github.com/vmohan7/NaviPirateDemo), [Jelly Fling](https://github.com/vmohan7/NaviSpaceDemo), [NaviSnap](https://github.com/vmohan7/NaviSnap). (Download links for the apps are located in the README of each respective github page). Make sure that both devices are connected to the same wireless network and they will automatically pair up. 
 
 Here is a short video I made that steps through the process of setting it up: 
 [https://www.youtube.com/watch?v=32SZAMq16QY](
@@ -16,10 +16,12 @@ https://www.youtube.com/watch?v=32SZAMq16QY)
 
 > 1. The NaviSDK folder is a Unity 5.1.3 project. After forking the project, you can open the project in Unity 5.1.3 or greater (both free and pro versions should work). 
 > 2. Once you have the project open in Unity, open PCMainScene located in Assets/Scenes
-> 3. Download & Install [the Navi App](https://play.google.com/store/apps/details?id=com.navi.io) from Google Play onto your Android Device.
+> 3. Download & Install the Navi App from [Google Play](https://play.google.com/store/apps/details?id=com.navi.io) or the [iOS App Store](https://itunes.apple.com/us/app/navi-for-ios/id1037575305?ls=1&mt=8) onto your mobile device.
 > 4. Run the Navi App and Run the scene in Unity. The app in Unity should run in the Game View as well as in a DK2 if connected. Assuming both devices are on the Wi-Fi network, the searching instruction should disappear from view on the Navi app. The Unity app should start walking you through how to use your device to control a virtual object.
 > 5. Congratualations! You have succesfully paired the devices and can now begin development. 
 > 6. To develop your own content, create a new scene and add it to the build settings. Rerun the PCMainScene, it should now load your scene once you complete all the instructions (or whenever you tap with 5 fingers to reset).
+
+> Alternatively, check out [this video](https://www.youtube.com/watch?v=IvqS0VPJtqA) to integrate Navi into an existing project
 
 ## Documentation
 
@@ -32,6 +34,5 @@ We welcome pull requests from everyone in the community. Pick an issue nobody is
 ## Coming Soon
 
 - Upcoming features list
-- iOS pending in App Store
-- Website
+- Blog & Website
 
