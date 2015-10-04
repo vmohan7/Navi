@@ -18,6 +18,9 @@
 
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+
+using PDollarGestureRecognizer;
 
 /// <summary>
 ///  This class manages handling various types of gestures.
@@ -40,6 +43,10 @@ public class GestureManager : MonoBehaviour {
 	public static event SwipeAction SwipeRight;
 	public static event SwipeAction SwipeUp;
 	public static event SwipeAction SwipeDown;
+
+	//Swipe detection events & variables
+	public delegate void ComplexGesture(string gestureClass);
+	public static event ComplexGesture OnComplexGesture;
 	
 	private const int MAX_STATIONARY_FRAMES = 6; //maximum number of stay events for a swipe
 	private const int MIN_SWIPE_DIST = 300; //distance for it to be considered a swipe
@@ -49,6 +56,9 @@ public class GestureManager : MonoBehaviour {
 	private Vector2 swipeStartPos = Vector2.zero; //start of swipe
 	private int stationaryForFrames = 0; //number of stationary frames in swipe
 	private float swipeStartTime = 0f; //time swipe started
+
+	private Gesture[] trainingSet;
+	private List<Point> points;
 
 
 	/// <summary>
@@ -66,6 +76,10 @@ public class GestureManager : MonoBehaviour {
 		TouchManager.OnTouchUp += HandleOnTouchUp;
 
 		TouchManager.OnTouchStayed += HandleOnTouchStay;
+
+		TouchManager.OnTouchMove += HandleOnTouchMove;
+
+		StartCoroutine (InitalizeGestures ());
 	}
 
 	/// <summary>
@@ -76,6 +90,8 @@ public class GestureManager : MonoBehaviour {
 		TouchManager.OnTouchUp -= HandleOnTouchUp;
 
 		TouchManager.OnTouchStayed -= HandleOnTouchStay;
+
+		TouchManager.OnTouchMove -= HandleOnTouchMove;
 
 	}
 
@@ -109,8 +125,11 @@ public class GestureManager : MonoBehaviour {
 		swipeStartPos = pos;  //Position where the touch started
 		swipeStartTime = Time.time; //The time it started
 		stationaryForFrames = 0;
+
+		//for generic gestures
+		points.Add (new Point (pos.x, pos.y, fingerID));
 	}
-	
+
 	/// <summary>
 	/// Callback for when a touch ends
 	/// </summary>
@@ -139,6 +158,16 @@ public class GestureManager : MonoBehaviour {
 					SwipeUp();
 			}
 		}
+
+		if (numFingersDown == 0 && points.Count >= 2) {
+			points.Add (new Point (pos.x, pos.y, fingerID));
+			Gesture candidate = new Gesture(points.ToArray());  
+			string gestureClass = PointCloudRecognizer.Classify(candidate, trainingSet); 
+			if (OnComplexGesture != null){
+				OnComplexGesture(gestureClass);
+			}
+			points.Clear();
+		}
 	}
 
 	/// <summary>
@@ -150,6 +179,28 @@ public class GestureManager : MonoBehaviour {
 		if (couldBeSwipe && stationaryForFrames > MAX_STATIONARY_FRAMES) {
 			couldBeSwipe = false;
 		}
+	}
+
+	/// <summary>
+	/// Callback for when a finger moves on the screen
+	/// </summary>
+	private void HandleOnTouchMove (int fingerID, Vector2 pos)
+	{
+		points.Add (new Point (pos.x, pos.y, fingerID));
+	}
+
+	/// <summary>
+	/// Loads all gestures stored in the resources folder in a semi-threaded manner
+	/// </summary>
+	private IEnumerator InitalizeGestures(){
+		Object[] assets = Resources.LoadAll("Gestures");
+		trainingSet = new Gesture[assets.Length];
+		for (int i = 0; i < assets.Length; i++) {
+			trainingSet[i] = PDollarDemo.GestureIO.ReadXMLGesture(((TextAsset)assets[i]).text);
+			yield return new WaitForEndOfFrame(); //wait in case there are a lot of files to load 
+		}
+
+		points = new List<Point>();
 	}
 
 }

@@ -105,7 +105,6 @@ public class NaviConnectionSDK : MonoBehaviour {
 		ResetDevice ();
 		
 		if (OnGameStart != null && initalReset) {
-			StopAllCoroutines();
 			initalReset = false;
 			OnGameStart ();
 		}
@@ -227,7 +226,9 @@ public class NaviConnectionSDK : MonoBehaviour {
 			touchConnectionID = -1;
 
 		if (tangoPoseConnectionID == -1 && touchConnectionID == -1){
-			OnDeviceDisconnected();
+			if (OnDeviceDisconnected != null)
+				OnDeviceDisconnected();
+
 			InvokeRepeating(SEND_DATA_METHOD_STR,0,0.5f); //send data every second
 		}
 	}
