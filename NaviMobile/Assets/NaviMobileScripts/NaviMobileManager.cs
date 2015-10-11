@@ -144,13 +144,23 @@ public class NaviMobileManager : MonoBehaviour {
 		}
 
 		if (naviPoseConnectionID > 0) {
-			byte[] buffer = new byte[BUFFER_SIZE];
-			Stream stream = new MemoryStream(buffer);
-			BinaryFormatter formatter = new BinaryFormatter();
-			PoseSerializer pose = new PoseSerializer();
-			pose.Fill(TransformManagerInterface.Instance.transform.position, TransformManagerInterface.Instance.transform.rotation);
-			formatter.Serialize(stream, pose);
-			NetworkTransport.Send(socketID, naviPoseConnectionID, myUnreliableChannelId, buffer, BUFFER_SIZE, out error); //send full buffer
+			if (SDKBuildNo == 1) {
+				byte[] buffer = new byte[BUFFER_SIZE];
+				Stream stream = new MemoryStream(buffer);
+				BinaryFormatter formatter = new BinaryFormatter();
+				PoseSerializer pose = new PoseSerializer();
+				pose.Fill(TransformManagerInterface.Instance.transform.position, TransformManagerInterface.Instance.transform.rotation);
+				formatter.Serialize(stream, pose);
+				NetworkTransport.Send(socketID, naviPoseConnectionID, myUnreliableChannelId, buffer, BUFFER_SIZE, out error); //send full buffer
+			} else {
+				byte[] buffer = new byte[BUFFER_SIZE];
+				Stream stream = new MemoryStream(buffer);
+				BinaryFormatter formatter = new BinaryFormatter();
+				PoseSerializerWithAcceleration pose = new PoseSerializerWithAcceleration();
+				pose.Fill(TransformManagerInterface.Instance.transform.position, TransformManagerInterface.Instance.transform.rotation, Input.acceleration);
+				formatter.Serialize(stream, pose);
+				NetworkTransport.Send(socketID, naviPoseConnectionID, myUnreliableChannelId, buffer, BUFFER_SIZE, out error); //send full buffer
+			}
 		}
 
 
@@ -170,6 +180,7 @@ public class NaviMobileManager : MonoBehaviour {
 				NetworkTransport.Send(socketID, touchConnectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error);
 			}
 		}
+	
 	}
 
 	/// <summary>

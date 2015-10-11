@@ -50,6 +50,9 @@ public class NaviConnectionSDK : MonoBehaviour {
 	public delegate void PoseAction(Vector3 position, Quaternion rotation);
 	public static event PoseAction OnPoseData;
 
+	public delegate void AccelerationAction(Vector3 acceleration);
+	public static event AccelerationAction OnAccelerationData;
+
 	public delegate void HMDResetAction();
 	public static event HMDResetAction OnResetHMD; //add your event here in case you want to do anything special on recenterting
 
@@ -62,7 +65,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 
 	private const int BUFFER_SIZE = 1024;
 
-	private const int SDK_BUILD_NO = 1; //current SDK version ID that will be sent to the mobile app for proper sync
+	private const int SDK_BUILD_NO = 2; //current SDK version ID that will be sent to the mobile app for proper sync
 
 	//keywords that trigger events on the smart device
 	private const string SEND_DATA_METHOD_STR = "SendData";
@@ -190,10 +193,22 @@ public class NaviConnectionSDK : MonoBehaviour {
 	private void HandlePoseData(byte[] recBuffer){
 		Stream stream = new MemoryStream(recBuffer);
 		BinaryFormatter formatter = new BinaryFormatter();
-		PoseSerializer poseData = (PoseSerializer) formatter.Deserialize(stream);
+		if (SDK_BUILD_NO == 1) { //support in case we do not want acceleration data being streamed
+			PoseSerializer poseData = (PoseSerializer)formatter.Deserialize (stream);
 
-		if (OnPoseData != null) {
-			OnPoseData(poseData.V3, poseData.Q);
+			if (OnPoseData != null) {
+				OnPoseData (poseData.V3, poseData.Q);
+			}
+		} else { //stream of acceleration data
+			PoseSerializerWithAcceleration poseData = (PoseSerializerWithAcceleration)formatter.Deserialize (stream);
+
+			if (OnPoseData != null) {
+				OnPoseData (poseData.Position, poseData.Rotation);
+			}
+
+			if (OnAccelerationData != null) {
+				OnAccelerationData (poseData.Acceleration);
+			}
 		}
 	}
 
