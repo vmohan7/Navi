@@ -31,7 +31,7 @@ using System.Collections;
 public class TouchManager : MonoBehaviour {
 
 	//The different types of events that can be sent out
-	public delegate void TouchEvent(int fingerID, Vector2 pos);
+	public delegate void TouchEvent(int playerID, int fingerID, Vector2 pos);
 	public static event TouchEvent OnTouchDown;
 	public static event TouchEvent OnTouchUp;
 	public static event TouchEvent OnTouchStayed;
@@ -41,11 +41,6 @@ public class TouchManager : MonoBehaviour {
 	//special events based on the number of taps
 	public static event TouchEvent OnDoubleTap;
 	public static event TouchEvent OnTripleTap;
-
-	[HideInInspector]
-	public int DeviceWidth;
-	[HideInInspector]
-	public int DeviceHeight; 
 
 	public static TouchManager Instance;
 	
@@ -83,29 +78,21 @@ public class TouchManager : MonoBehaviour {
 	/// <summary>
 	/// A static method that takes the network data and dispatches events based on what was inputted on the smart device
 	/// </summary>
+	/// <param name="playerID">The device the touch input is coming from</param>
 	/// <param name="ts">The data from the smart device, which has been parsed into a TouchSerializer already</param>
-	public static void ProcessTouch(TouchSerializer ts){
+	public static void ProcessTouch(int playerID, TouchSerializer ts){
 		TouchEvent touchType = TouchPhaseLookup(ts.phase);
 		if (touchType != null) {
-			touchType(ts.fingerID, ts.position);
+			touchType(playerID, ts.fingerID, ts.position);
 		}
 		
 		if (OnDoubleTap != null && ts.tapCount == 2 && touchType == OnTouchUp) {
-			OnDoubleTap (ts.fingerID, ts.position);
+			OnDoubleTap (playerID, ts.fingerID, ts.position);
 		}
 		
 		if (OnTripleTap != null && ts.tapCount == 3 && touchType == OnTouchUp) {
-			OnTripleTap (ts.fingerID, ts.position);
+			OnTripleTap (playerID, ts.fingerID, ts.position);
 		}
 	}
-
-	/// <summary>
-	/// Stores the smart device's width and height in this instance to be accessed by the game
-	/// </summary>
-	/// <param name="width">The width of the smart device</param>
-	/// <param name="height">The height of the smart device</param>
-	public void SetServerScreenSize(int width, int height){
-		DeviceWidth = width;
-		DeviceHeight = height;
-	}
+	
 }

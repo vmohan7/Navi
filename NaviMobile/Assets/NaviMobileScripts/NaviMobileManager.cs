@@ -36,7 +36,8 @@ using System.IO;
 /// being broadcasted by the VR device. The second step is connecting to that ipAddress in order to send data wirelesssly.
 /// </summary>
 public class NaviMobileManager : MonoBehaviour {
-
+	
+	public Text controllerNumber; //Let user know which number it is
 	public Text instructionPanel; //the text that is displayed to the user
 	public RawImage background; //an image that we can show from the app
 
@@ -48,12 +49,8 @@ public class NaviMobileManager : MonoBehaviour {
 	[HideInInspector]
 	public int socketID;
 	[HideInInspector]
-	public int naviPoseConnectionID = -1; //set once the devices connect to each other
-	private bool naviPoseAssigned = false;
+	public int naviConnectionID = -1; //set once the devices connect to each other
 
-	[HideInInspector]
-	public int touchConnectionID = -1; //set once the devices connect to each other
-	private bool touchConnectionAssigned = false;
 
 	[HideInInspector]
 	public int myReiliableChannelId;
@@ -62,7 +59,7 @@ public class NaviMobileManager : MonoBehaviour {
 	[HideInInspector]
 	public int myUnreliableFramentedChannelId;
 
-	public const int NumConnections = 2; //number of connections the socket can handle
+	public const int NumConnections = 1; //number of connections the socket is allowed to handle
 
 	public const int ServerPort = 8888;
 	public const int UDPServerPort = 1204;
@@ -72,13 +69,15 @@ public class NaviMobileManager : MonoBehaviour {
 
 	private const string SEND_DATA_METHOD_STR = "SendData";
 	private const string RESET_STR = "Reset";
-
-	private const string POSE_MESSAGE_ID = "Pose";
+	
 	private const string TOUCH_MESSAGE_ID = "Touch";
 	private const string VIDEO_MESSAGE_ID = "Video";
 
 	private const string BUILD_MESSAGE_ID = "BuildNo";
-
+	private const string ASSIGN_DEVICE_ID = "DeviceNo";
+	private const string VIBRATE_ID = "Vibrate";
+	private const string INSTRUCTION_ID = "SetInstruction";
+	
 	private const string TOUCH_METHOD_ID = "TouchIO";
 	private const string SET_SIZE_METHOD_ID = "SetSize";
 
@@ -123,16 +122,11 @@ public class NaviMobileManager : MonoBehaviour {
 		NetworkEventType recData = NetworkTransport.Receive(out recHostId, out connectionId, out channelId, recBuffer, bufferSize, out dataSize, out error);
 		switch (recData)
 		{
+		case NetworkEventType.ConnectEvent:
+			break;
 		case NetworkEventType.DataEvent:
-			if (!naviPoseAssigned || !touchConnectionAssigned) {
-				Stream stream = new MemoryStream(recBuffer);
-				BinaryFormatter formatter = new BinaryFormatter();
-				string message = formatter.Deserialize(stream) as string;
-				AssignID(connectionId, message);
-			} else {
-				if (connectionId == touchConnectionID) {
-					HandleRPC (recBuffer);
-				}
+			if (channelId == myReiliableChannelId) {
+				HandleRPC (recBuffer);
 			}
 
 			break;
@@ -143,74 +137,29 @@ public class NaviMobileManager : MonoBehaviour {
 			break;
 		}
 
-		if (naviPoseConnectionID > 0) {
-			if (SDKBuildNo == 1) {
-				byte[] buffer = new byte[BUFFER_SIZE];
-				Stream stream = new MemoryStream(buffer);
-				BinaryFormatter formatter = new BinaryFormatter();
-				PoseSerializer pose = new PoseSerializer();
-				pose.Fill(TransformManagerInterface.Instance.transform.position, TransformManagerInterface.Instance.transform.rotation);
-				formatter.Serialize(stream, pose);
-				NetworkTransport.Send(socketID, naviPoseConnectionID, myUnreliableChannelId, buffer, BUFFER_SIZE, out error); //send full buffer
-			} else {
-				byte[] buffer = new byte[BUFFER_SIZE];
-				Stream stream = new MemoryStream(buffer);
-				BinaryFormatter formatter = new BinaryFormatter();
-				PoseSerializerWithAcceleration pose = new PoseSerializerWithAcceleration();
-				pose.Fill(TransformManagerInterface.Instance.transform.position, TransformManagerInterface.Instance.transform.rotation, Input.acceleration);
-				formatter.Serialize(stream, pose);
-				NetworkTransport.Send(socketID, naviPoseConnectionID, myUnreliableChannelId, buffer, BUFFER_SIZE, out error); //send full buffer
-			}
-		}
-
-
-		if (touchConnectionID > 0) {
-			BinaryFormatter formatter = new BinaryFormatter();
-			foreach (Touch t in Input.touches){
-				byte[] buffer = new byte[BUFFER_SIZE];
-				Stream stream = new MemoryStream(buffer);
-
-				RPCSerializer rpc = new RPCSerializer();
-				rpc.methodName = TOUCH_METHOD_ID;
-				rpc.args = new object[1];
-				TouchSerializer ts = new TouchSerializer();
-				ts.Fill(t);
-				rpc.args[0] = ts; 
-				formatter.Serialize(stream, rpc);
-				NetworkTransport.Send(socketID, touchConnectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error);
-			}
-		}
-	
-	}
-
-	/// <summary>
-	/// This method handles remembering which connection shuold be used to send which type of data
-	/// Once all connections have been establishsed, we also send a one time message of the size of the device we are using
-	/// </summary>
-	/// <param name="connectionID">ConnectionId we recieved data from</param>
-	/// <param name="message">The type of data that should be sent over this connection</param>
-	private void AssignID(int connectionID, string message){
-		if (message.Equals (POSE_MESSAGE_ID)) {
-			naviPoseConnectionID = connectionID;
-			naviPoseAssigned = true;
-		} else if (message.Equals (TOUCH_MESSAGE_ID)) {
-			touchConnectionID = connectionID;
-			touchConnectionAssigned = true;
-
-			//Send RPC with size data
-			byte error;
-			BinaryFormatter formatter = new BinaryFormatter ();
+		if (naviConnectionID > 0) {
 			byte[] buffer = new byte[BUFFER_SIZE];
 			Stream stream = new MemoryStream (buffer);
-			
-			RPCSerializer rpc = new RPCSerializer ();
-			rpc.methodName = SET_SIZE_METHOD_ID;
-			rpc.args = new object[2];
-			rpc.args [0] = Screen.width; 
-			rpc.args [1] = Screen.height; 
-			formatter.Serialize (stream, rpc);
-			NetworkTransport.Send (socketID, touchConnectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error);
-		}
+			BinaryFormatter formatter = new BinaryFormatter ();
+			PoseSerializerWithAcceleration pose = new PoseSerializerWithAcceleration ();
+			pose.Fill (TransformManagerInterface.Instance.transform.position, TransformManagerInterface.Instance.transform.rotation, Input.acceleration);
+			formatter.Serialize (stream, pose);
+			NetworkTransport.Send (socketID, naviConnectionID, myUnreliableChannelId, buffer, BUFFER_SIZE, out error); //send full buffer
+
+			foreach (Touch t in Input.touches) {
+				buffer = new byte[BUFFER_SIZE];
+				stream = new MemoryStream (buffer);
+				
+				RPCSerializer rpc = new RPCSerializer ();
+				rpc.methodName = TOUCH_METHOD_ID;
+				rpc.args = new object[1];
+				TouchSerializer ts = new TouchSerializer ();
+				ts.Fill (t);
+				rpc.args [0] = ts; 
+				formatter.Serialize (stream, rpc);
+				NetworkTransport.Send (socketID, naviConnectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error);
+			}
+		} 
 	}
 
 	/// <summary>
@@ -223,7 +172,26 @@ public class NaviMobileManager : MonoBehaviour {
 		RPCSerializer rpcData = (RPCSerializer) formatter.Deserialize(stream);
 		
 		if (rpcData.methodName.Equals (BUILD_MESSAGE_ID)) {
-			SDKBuildNo = (int) rpcData.args[0];
+			SDKBuildNo = (int)rpcData.args [0];
+		} else if (rpcData.methodName.Equals (ASSIGN_DEVICE_ID)) {
+			//Send RPC with size data
+			byte error;
+			byte[] buffer = new byte[BUFFER_SIZE];
+			stream = new MemoryStream (buffer);
+
+			SetDeviceNumber ((int)rpcData.args [0]);
+			
+			RPCSerializer rpc = new RPCSerializer ();
+			rpc.methodName = SET_SIZE_METHOD_ID;
+			rpc.args = new object[2];
+			rpc.args [0] = Screen.width; 
+			rpc.args [1] = Screen.height; 
+			formatter.Serialize (stream, rpc);
+			NetworkTransport.Send (socketID, naviConnectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error);
+		} else if (rpcData.methodName.Equals (VIBRATE_ID)) {
+			Handheld.Vibrate();
+		} else if (rpcData.methodName.Equals (INSTRUCTION_ID)){
+			SetInstruction ((string)rpcData.args [0]);
 		}
 		
 	}
@@ -234,17 +202,17 @@ public class NaviMobileManager : MonoBehaviour {
 	/// </summary>
 	/// <param name="connectionID">ConnectionId that disconnected</param>
 	private void OnDisconnect(int connectionID){
-		if (naviPoseConnectionID == connectionID) {
-			naviPoseConnectionID = -1;
-			naviPoseAssigned = false;
-		} else if (touchConnectionID == connectionID) {
-			touchConnectionID = -1;
-			touchConnectionAssigned = false;
-		}
+		naviConnectionID = -1;
+		SetInstruction (searchInstructions);
+		controllerNumber.gameObject.SetActive (false);
+	}
 
-		if (!naviPoseAssigned && !touchConnectionAssigned){
-			SetInstruction (searchInstructions);
-		}
+	/// <summary>
+	/// Sets the text to display to the controller number
+	/// </summary>
+	private void SetDeviceNumber(int playerNumber){
+		if (controllerNumber != null)
+			controllerNumber.text = "Controller #" + playerNumber;
 	}
 
 	/// <summary>
@@ -258,7 +226,7 @@ public class NaviMobileManager : MonoBehaviour {
 	/// <summary>
 	/// Creates a socket using the Unity Transport layer. This is a UDP connection that will support two channels of communication. 
 	/// </summary>
-	private void CreateSocket(){
+	private void CreateSocket() {
 		NetworkTransport.Init();
 		ConnectionConfig config = new ConnectionConfig();
 		
@@ -303,23 +271,19 @@ public class NaviMobileManager : MonoBehaviour {
 		
 		string message = Encoding.ASCII.GetString (received);
 		if (message.Equals (RESET_STR)) {
-			SetInstruction ("");
 			if (TransformManagerInterface.Instance != null)
 				TransformManagerInterface.Instance.Reset ();
 		} else {
 			//assume that the message is an ipAddress
 			byte error;
-			if (naviPoseConnectionID < 0 && touchConnectionID < 0) {
-				//connect twice; once for sending pose data and once for sending RPC touch data
-				//temp assign in case we recieve data before the validation from server
-				naviPoseConnectionID = NetworkTransport.Connect(socketID, message, NaviMobileManager.ServerPort, 0, out error); 
-				touchConnectionID= NetworkTransport.Connect(socketID, message, NaviMobileManager.ServerPort, 0, out error);
+			if (naviConnectionID < 0) {
+				naviConnectionID = NetworkTransport.Connect(socketID, message, NaviMobileManager.ServerPort, 0, out error); 
 				SetInstruction ("");
+				controllerNumber.gameObject.SetActive (true);
 			}
 		}
 		
 		//start listening again
 		receiver.BeginReceive (new AsyncCallback (ReceiveData), null);
 	}
-	
 }

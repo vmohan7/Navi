@@ -23,6 +23,6 @@ public class SimpleCopyTablet : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		transform.rotation = NaviDeviceLocation.DeviceLocation.transform.rotation;
+		transform.rotation = NaviConnectionSDK.Instance.GetPlayerPose (0).transform.rotation;
 	}
 }

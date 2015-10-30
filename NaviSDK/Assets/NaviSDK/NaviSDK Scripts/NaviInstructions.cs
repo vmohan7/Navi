@@ -57,14 +57,15 @@ public class NaviInstructions : MonoBehaviour {
 	/// <summary>
 	/// Callback for when Device connects, so we start showing instructions
 	/// </summary>
-	private void OnDeviceConnect(){
+	private void OnDeviceConnect(int recSocketID){
+		//TODO check that only one device is connected
 		StartCoroutine (InstructionGuide ());
 	}
 
 	/// <summary>
 	/// Callback for when Device disconnects, so we can restart instructions
 	/// </summary>
-	private void OnDeviceDisconnect(){
+	private void OnDeviceDisconnect(int recSocketID){
 		StopAllCoroutines ();
 		SetInstruction (searchInstructions);
 	}
@@ -84,14 +85,16 @@ public class NaviInstructions : MonoBehaviour {
 		Instantiate (devicePrefab, Camera.main.transform.position, new Quaternion ());
 		NaviConnectionSDK.Instance.ResetDevice ();
 		SetInstruction (tiltUpDownInstruction);
-		
+
+		Transform player0 = NaviConnectionSDK.Instance.GetPlayerPose (0).transform;
+
 		yield return new WaitForSeconds(1f); //wait for reset
-		while (Mathf.Abs(NaviDeviceLocation.DeviceLocation.rotation.eulerAngles.x - 180f) > TurnMargin) {
+		while (Mathf.Abs(player0.rotation.eulerAngles.x - 180f) > TurnMargin) {
 			yield return new WaitForFixedUpdate(); //wait until they move up and down
 		}
 		
 		SetInstruction (tiltRightLeftInstruction);
-		while (Mathf.Abs(NaviDeviceLocation.DeviceLocation.rotation.eulerAngles.y - 180f) > TurnMargin) {
+		while (Mathf.Abs(player0.rotation.eulerAngles.y - 180f) > TurnMargin) {
 			yield return new WaitForFixedUpdate(); //wait until they move up and down
 		}
 		
@@ -102,16 +105,20 @@ public class NaviInstructions : MonoBehaviour {
 	/// <summary>
 	/// Wait for user to verify that the smart device is ready
 	/// </summary>
-	private void OnPermissionTap(int fingerID, Vector2 pos){
-		permissionInstruction = true;
+	private void OnPermissionTap(int playerID, int fingerID, Vector2 pos){
+		if (playerID == 0) {
+			permissionInstruction = true;
+		}
 	}
 	
 	private bool toggleTapInstruction = false;
 	/// <summary>
 	/// Waits for smart device to recieve a double tap
 	/// </summary>
-	private void OnToggleTap(int fingerID, Vector2 pos){
-		toggleTapInstruction = true;
+	private void OnToggleTap(int playerID, int fingerID, Vector2 pos){
+		if (playerID == 0) {
+			toggleTapInstruction = true;
+		}
 	}
 
 	/// <summary>

@@ -31,6 +31,9 @@ public class GyroManager : TransformManagerInterface {
 	private bool isReseting = false; //avoid multiple reset commands interfering with each other
 	private Quaternion initalRotation; //rotation of last reset
 
+	private Quaternion sensorFused = Quaternion.identity;
+	private const float SamplePeriod = 1f / 256f; //Might want to make this 1/60 fps
+	private const float Beta =  0.1f;
 
 	/// <summary>
 	///  Method to initalize the gyro at start of game
@@ -58,7 +61,7 @@ public class GyroManager : TransformManagerInterface {
 	/// </summary>
 	/// <param name="rot">The output rotation from this calculation</param> 
 	private void ComputeRotation(out Quaternion rot){
-		var att = Input.gyro.attitude;
+		Quaternion att = Input.gyro.attitude;
 		if (isUpsideDown) {
 			att = new Quaternion(att.x, att.y, att.z, att.w);
 		} else {
@@ -102,5 +105,4 @@ public class GyroManager : TransformManagerInterface {
 			isReseting = false; //done reseting
 		}
 	}
-
 }

@@ -47,6 +47,7 @@ public abstract class TransformManagerInterface : MonoBehaviour {
 	/// </summary>
 	public abstract void Reset();
 
+	/*
 	/// <summary>
 	///  Displays a small reset button in the top right for users to hard reset the device
 	/// </summary>
@@ -55,6 +56,6 @@ public abstract class TransformManagerInterface : MonoBehaviour {
 		if (GUI.Button (new Rect (Screen.width - 200, 50, 150, 80), "Reset Position")) {
 			Reset ();
 		}
-		
 	}
+	*/
 }

@@ -57,13 +57,14 @@ public class CopyTablet : MonoBehaviour {
 	/// Updates the game objects transform based on the device location and the current copy setting (rotation or both rotation and position)
 	/// </summary>
 	void Update () {
-		if (NaviDeviceLocation.DeviceLocation != null) {
+		if (NaviConnectionSDK.Instance.GetPlayerPose(0) != null) {
+			NaviDevice player0 = NaviConnectionSDK.Instance.GetPlayerPose(0);
 			if (justRotation) {
-				transform.rotation = NaviDeviceLocation.DeviceLocation.transform.rotation;
+				transform.rotation = player0.transform.rotation;
 			} else {
 				//TODO figure out how to scale the position and make it rotate around you based on some assumptions of reset
-				transform.position = initalRadius*NaviDeviceLocation.DeviceLocation.transform.position + initalPos;
-				moveableObject.transform.rotation = NaviDeviceLocation.DeviceLocation.transform.rotation;
+				transform.position = initalRadius*player0.transform.position + initalPos;
+				moveableObject.transform.rotation = player0.transform.rotation;
 			}
 
 		}
@@ -72,9 +73,11 @@ public class CopyTablet : MonoBehaviour {
 	/// <summary>
 	/// Callback function for double tap, which will switch between copy modes
 	/// </summary>
-	private void OnSwitchModes(int fingerId, Vector2 pos){
-		justRotation = !justRotation; //toggles mode
-		moveableObject.transform.rotation = new Quaternion(); //reset rotation of device
-		transform.position = initalPos; //reset position
+	private void OnSwitchModes(int playerID, int fingerId, Vector2 pos){
+		if (playerID == 0) {
+			justRotation = !justRotation; //toggles mode
+			moveableObject.transform.rotation = new Quaternion (); //reset rotation of device
+			transform.position = initalPos; //reset position
+		}
 	}
 }
