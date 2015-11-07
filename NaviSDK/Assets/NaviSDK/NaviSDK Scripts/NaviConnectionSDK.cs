@@ -80,6 +80,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 	private const string ASSIGN_DEVICE_ID = "DeviceNo";
 	private const string VIBRATE_ID = "Vibrate";
 	private const string INSTRUCTION_ID = "SetInstruction";
+	private const string IMAGE_ID = "SetImage";
 	
 	private const string TOUCH_METHOD_ID = "TouchIO";
 	private const string SET_SIZE_METHOD_ID = "SetSize";
@@ -100,7 +101,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 	[HideInInspector]
 	public int myUnreliableChannelId;
 	[HideInInspector]
-	public int myUnreliableFragmentedChannelId;
+	public int myReliableFragmentedChannelId;
 	
 	//Used to start game for the first time
 	private bool initalReset = true;
@@ -199,7 +200,26 @@ public class NaviConnectionSDK : MonoBehaviour {
 		formatter.Serialize(stream, rpc);
 		NetworkTransport.Send(socketID, currConnection, myReiliableChannelId, buffer, BUFFER_SIZE, out error); 
 	}
-	
+
+	public void SendImage(int player_id, Texture2D tex){
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		byte[] bytesTex = tex.EncodeToPNG ();
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[bytesTex.Length + BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+		
+		//send player id
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = IMAGE_ID;
+		rpc.args = new object[1];
+		rpc.args [0] = bytesTex;
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableFragmentedChannelId, buffer, buffer.Length, out error); 
+	}
+
 	/// <summary>
 	/// Public Method to reset just the smart device
 	/// </summary>
@@ -357,19 +377,20 @@ public class NaviConnectionSDK : MonoBehaviour {
 	/// <param name="recSocketId">The id of the device that is connecting</param>
 	/// <param name="connectionID">The connection id that disconnected</param>
 	private void OnDisconnect(int connectionID){
-		foreach (NaviDevice naviDevice in playerConnectionIds) {
+		for (int i = 0; i < playerConnectionIds.Count; i++) {
+			NaviDevice naviDevice = playerConnectionIds[i];
 			if ( naviDevice.connectionID == connectionID){
 				playerConnectionIds.Remove (naviDevice);
 				GameObject.Destroy(naviDevice);
+
+				if (OnDeviceDisconnected != null)
+					OnDeviceDisconnected(i);
+
 				break;
 			}
 		}
-
-		if (OnDeviceDisconnected != null)
-			OnDeviceDisconnected(connectionID);
-
 	}
-	
+
 	/// <summary>
 	/// Method that is called when a connection is made. We then send a message back to the smart device 
 	/// so that the smart device knows which connection it should use to send different types of data.
@@ -463,7 +484,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 		
 		myReiliableChannelId  = config.AddChannel(QosType.Reliable);
 		myUnreliableChannelId = config.AddChannel(QosType.Unreliable);
-		myUnreliableFragmentedChannelId = config.AddChannel(QosType.UnreliableFragmented);
+		myReliableFragmentedChannelId = config.AddChannel(QosType.ReliableFragmented);
 		
 		HostTopology topology = new HostTopology(config, NUM_CONNECTIONS); //only supports one other connection
 		

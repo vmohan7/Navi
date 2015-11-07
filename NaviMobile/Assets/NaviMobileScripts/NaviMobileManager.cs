@@ -57,7 +57,7 @@ public class NaviMobileManager : MonoBehaviour {
 	[HideInInspector]
 	public int myUnreliableChannelId;
 	[HideInInspector]
-	public int myUnreliableFramentedChannelId;
+	public int myReliableFramentedChannelId;
 
 	public const int NumConnections = 1; //number of connections the socket is allowed to handle
 
@@ -66,6 +66,7 @@ public class NaviMobileManager : MonoBehaviour {
 	public const int RemotePort = 19784;
 
 	private const int BUFFER_SIZE = 256;
+	private const int MAX_RECIEVE_SIZE = 51200;//131072; //support up to 128 kB
 
 	private const string SEND_DATA_METHOD_STR = "SendData";
 	private const string RESET_STR = "Reset";
@@ -77,6 +78,7 @@ public class NaviMobileManager : MonoBehaviour {
 	private const string ASSIGN_DEVICE_ID = "DeviceNo";
 	private const string VIBRATE_ID = "Vibrate";
 	private const string INSTRUCTION_ID = "SetInstruction";
+	private const string IMAGE_ID = "SetImage";
 	
 	private const string TOUCH_METHOD_ID = "TouchIO";
 	private const string SET_SIZE_METHOD_ID = "SetSize";
@@ -103,7 +105,6 @@ public class NaviMobileManager : MonoBehaviour {
 		Screen.sleepTimeout = SleepTimeout.NeverSleep;
 		CreateSocket ();
 		StartReceivingIP();
-
 	}
 
 	/// <summary>
@@ -115,11 +116,13 @@ public class NaviMobileManager : MonoBehaviour {
 		int recHostId; 
 		int connectionId; 
 		int channelId; 
-		byte[] recBuffer = new byte[1024]; 
-		int bufferSize = 1024;
+		byte[] recBuffer = new byte[MAX_RECIEVE_SIZE]; 
+		int bufferSize = MAX_RECIEVE_SIZE;
 		int dataSize;
 		byte error;
 		NetworkEventType recData = NetworkTransport.Receive(out recHostId, out connectionId, out channelId, recBuffer, bufferSize, out dataSize, out error);
+		Array.Resize<byte> (ref recBuffer, dataSize); //resize to how much data was received
+
 		switch (recData)
 		{
 		case NetworkEventType.ConnectEvent:
@@ -127,6 +130,8 @@ public class NaviMobileManager : MonoBehaviour {
 		case NetworkEventType.DataEvent:
 			if (channelId == myReiliableChannelId) {
 				HandleRPC (recBuffer);
+			} else if (channelId == myReliableFramentedChannelId) {
+				HandleImageRPC(recBuffer);
 			}
 
 			break;
@@ -163,6 +168,31 @@ public class NaviMobileManager : MonoBehaviour {
 	}
 
 	/// <summary>
+	/// Method to parse and recieve image RPC from big data sources like an image
+	/// </summary>
+	/// <param name="recBuffer">The data that was recieved from the smart device</param>
+	private void HandleImageRPC(byte[] recBuffer){
+		Stream stream = new MemoryStream(recBuffer);
+		BinaryFormatter formatter = new BinaryFormatter();
+		RPCSerializer rpcData = (RPCSerializer) formatter.Deserialize(stream);
+		
+		if (rpcData.methodName.Equals (IMAGE_ID)) {
+			if (background.texture != null) { 
+				Destroy(background.texture);
+				background.texture = null;
+			}
+			
+			Texture2D tex = new Texture2D (Screen.width, Screen.height);
+			byte[] texData = (byte []) rpcData.args [0];
+			tex.LoadImage (texData);
+			tex.Apply();
+			background.texture = tex;
+			background.color = Color.white;
+		}
+		
+	}
+
+	/// <summary>
 	/// Method to parse and send an RPC event from smart device such as recieving touch input
 	/// </summary>
 	/// <param name="recBuffer">The data that was recieved from the smart device</param>
@@ -170,7 +200,7 @@ public class NaviMobileManager : MonoBehaviour {
 		Stream stream = new MemoryStream(recBuffer);
 		BinaryFormatter formatter = new BinaryFormatter();
 		RPCSerializer rpcData = (RPCSerializer) formatter.Deserialize(stream);
-		
+
 		if (rpcData.methodName.Equals (BUILD_MESSAGE_ID)) {
 			SDKBuildNo = (int)rpcData.args [0];
 		} else if (rpcData.methodName.Equals (ASSIGN_DEVICE_ID)) {
@@ -189,11 +219,10 @@ public class NaviMobileManager : MonoBehaviour {
 			formatter.Serialize (stream, rpc);
 			NetworkTransport.Send (socketID, naviConnectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error);
 		} else if (rpcData.methodName.Equals (VIBRATE_ID)) {
-			Handheld.Vibrate();
-		} else if (rpcData.methodName.Equals (INSTRUCTION_ID)){
+			Handheld.Vibrate ();
+		} else if (rpcData.methodName.Equals (INSTRUCTION_ID)) {
 			SetInstruction ((string)rpcData.args [0]);
 		}
-		
 	}
 
 
@@ -205,6 +234,13 @@ public class NaviMobileManager : MonoBehaviour {
 		naviConnectionID = -1;
 		SetInstruction (searchInstructions);
 		controllerNumber.gameObject.SetActive (false);
+
+		if (background.texture != null) {
+			Destroy (background.texture);
+			background.texture = null;
+		}
+
+		background.color = new Color (.227f, .227f, .227f);
 	}
 
 	/// <summary>
@@ -232,7 +268,7 @@ public class NaviMobileManager : MonoBehaviour {
 		
 		myReiliableChannelId  = config.AddChannel(QosType.Reliable);
 		myUnreliableChannelId = config.AddChannel(QosType.Unreliable);
-		myUnreliableFramentedChannelId = config.AddChannel(QosType.UnreliableFragmented);
+		myReliableFramentedChannelId = config.AddChannel(QosType.ReliableFragmented);
 		
 		HostTopology topology = new HostTopology(config, NumConnections);
 		
