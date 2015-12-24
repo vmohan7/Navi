@@ -79,6 +79,15 @@ public class NaviMobileManager : MonoBehaviour {
 	private const string VIBRATE_ID = "Vibrate";
 	private const string INSTRUCTION_ID = "SetInstruction";
 	private const string IMAGE_ID = "SetImage";
+
+	private const string ASSET_ID = "SetBundle";
+
+	private const string GAMEOBJ_LOC_ID = "SetGameObjLoc";
+	private const string GAMEOBJ_ROT_ID = "SetGameObjRot";
+	private const string GAMEOBJ_ANIM_ID = "SetGameObjAnim";
+	private const string GAMEOBJ_RENDER_ID = "SetGameObjRendState";
+	private const string GAMEOBJ_DUP_ID = "DupGameObject";
+	private const string GAMEOBJ_DEL_ID = "DeleteGameObject";
 	
 	private const string TOUCH_METHOD_ID = "TouchIO";
 	private const string SET_SIZE_METHOD_ID = "SetSize";
@@ -131,7 +140,7 @@ public class NaviMobileManager : MonoBehaviour {
 			if (channelId == myReiliableChannelId) {
 				HandleRPC (recBuffer);
 			} else if (channelId == myReliableFramentedChannelId) {
-				HandleImageRPC(recBuffer);
+				HandleBigRPC (recBuffer);
 			}
 
 			break;
@@ -171,25 +180,59 @@ public class NaviMobileManager : MonoBehaviour {
 	/// Method to parse and recieve image RPC from big data sources like an image
 	/// </summary>
 	/// <param name="recBuffer">The data that was recieved from the smart device</param>
-	private void HandleImageRPC(byte[] recBuffer){
+	private void HandleBigRPC(byte[] recBuffer){
 		Stream stream = new MemoryStream(recBuffer);
 		BinaryFormatter formatter = new BinaryFormatter();
 		RPCSerializer rpcData = (RPCSerializer) formatter.Deserialize(stream);
-		
+
 		if (rpcData.methodName.Equals (IMAGE_ID)) {
-			if (background.texture != null) { 
-				Destroy(background.texture);
-				background.texture = null;
-			}
-			
-			Texture2D tex = new Texture2D (Screen.width, Screen.height);
-			byte[] texData = (byte []) rpcData.args [0];
-			tex.LoadImage (texData);
-			tex.Apply();
-			background.texture = tex;
-			background.color = Color.white;
+			HandleImageRPC ((byte[])rpcData.args [0]);
+		} else if (rpcData.methodName.Equals (ASSET_ID)) {
+			HandleAssetBundle ( rpcData );
 		}
-		
+
+	}
+
+	private byte[] data;
+	private AssetBundle sceneBundle = null;
+	private void HandleAssetBundle(RPCSerializer rpcData){
+		int index = (int) rpcData.args[0];
+		if (index == -1) {
+			sceneBundle = AssetBundle.LoadFromMemory (data);
+			sceneBundle.LoadAllAssets ();
+
+			string[] scenes = sceneBundle.GetAllScenePaths ();
+			string mySceneName = scenes[0];
+			mySceneName = mySceneName.Substring(0, mySceneName.Length - 6); //remove .unity
+			mySceneName = mySceneName.Substring(mySceneName.LastIndexOf("/") + 1); //remove path
+
+			Application.LoadLevel (mySceneName);
+		} else if (index == 0) {
+			data = new byte[ (int) rpcData.args[1] ] ;
+			if (sceneBundle != null) {
+				Application.LoadLevel (1);
+				sceneBundle.Unload (true);
+			}
+		} else {
+			int start = (int)rpcData.args [1];
+			byte[] bData = (byte[] )rpcData.args [2];
+			for (int i = 0; i < bData.Length; i++) {
+				data [i + start] = bData [i];
+			}
+		}
+	}
+
+	private void HandleImageRPC(byte[] texData) {
+		if (background.texture != null) { 
+			Destroy(background.texture);
+			background.texture = null;
+		}
+
+		Texture2D tex = new Texture2D (Screen.width, Screen.height);
+		tex.LoadImage (texData);
+		tex.Apply();
+		background.texture = tex;
+		background.color = Color.white;
 	}
 
 	/// <summary>
@@ -199,18 +242,24 @@ public class NaviMobileManager : MonoBehaviour {
 	private void HandleRPC(byte[] recBuffer){
 		Stream stream = new MemoryStream(recBuffer);
 		BinaryFormatter formatter = new BinaryFormatter();
-		RPCSerializer rpcData = (RPCSerializer) formatter.Deserialize(stream);
+		byte error;
+		RPCSerializer rpcData = new RPCSerializer();
+		try {
+			rpcData = (RPCSerializer) formatter.Deserialize(stream);
+		} catch (Exception e) {
+			Debug.Log(e);
+			return;
+		}
 
 		if (rpcData.methodName.Equals (BUILD_MESSAGE_ID)) {
 			SDKBuildNo = (int)rpcData.args [0];
 		} else if (rpcData.methodName.Equals (ASSIGN_DEVICE_ID)) {
-			//Send RPC with size data
-			byte error;
+
 			byte[] buffer = new byte[BUFFER_SIZE];
 			stream = new MemoryStream (buffer);
 
 			SetDeviceNumber ((int)rpcData.args [0]);
-			
+
 			RPCSerializer rpc = new RPCSerializer ();
 			rpc.methodName = SET_SIZE_METHOD_ID;
 			rpc.args = new object[2];
@@ -222,9 +271,59 @@ public class NaviMobileManager : MonoBehaviour {
 			Handheld.Vibrate ();
 		} else if (rpcData.methodName.Equals (INSTRUCTION_ID)) {
 			SetInstruction ((string)rpcData.args [0]);
+		} else if (rpcData.methodName.Equals (GAMEOBJ_LOC_ID)) {
+			GameObject obj = GameObject.Find ((string)rpcData.args [0]); //0 arg is string of the name of the object
+			if (obj != null) {
+				obj.transform.position = new Vector3( (float)rpcData.args [1], (float)rpcData.args [2], (float)rpcData.args [3]); //arg 1,2,3 are x,y,z
+			}
+		} else if (rpcData.methodName.Equals (GAMEOBJ_ROT_ID)) {
+			GameObject obj = GameObject.Find ((string)rpcData.args [0]); //0 arg is string of the name of the object
+			if (obj != null) {
+				obj.transform.rotation = new Quaternion( (float)rpcData.args [1], (float)rpcData.args [2], (float)rpcData.args [3], (float)rpcData.args [4]); //arg 1,2,3 are x,y,z
+			}
+		} else if (rpcData.methodName.Equals (GAMEOBJ_ANIM_ID)) {
+			GameObject obj = GameObject.Find ((string)rpcData.args [0]); //0 arg is string of the name of the object
+			if (obj != null) {
+				//arg 1,2,3 are x,y,z and 4 is time
+				StartCoroutine(AnimateObj(obj, new Vector3( (float)rpcData.args [1], (float)rpcData.args [2], (float)rpcData.args [3]), (float) rpcData.args [4]) );
+			}
+		} else if (rpcData.methodName.Equals (GAMEOBJ_RENDER_ID)) {
+			GameObject obj = GameObject.Find ((string)rpcData.args [0]); //0 arg is string of the name of the object
+			if (obj != null) {
+				Renderer[] rends = obj.GetComponentsInChildren<Renderer>();
+				foreach(Renderer r in rends) {
+					r.enabled = (bool)rpcData.args [1];
+				}
+			}
+		} else if (rpcData.methodName.Equals (GAMEOBJ_DEL_ID)) {
+			GameObject obj = GameObject.Find ((string)rpcData.args [0]); //0 arg is string of the name of the object
+			if (obj != null) {
+				Destroy (obj);
+			}
+		} else if (rpcData.methodName.Equals (GAMEOBJ_DUP_ID)) {
+			GameObject obj = GameObject.Find ((string)rpcData.args [0]); //0 arg is string of the name of the object
+			if (obj != null) {
+				GameObject newObj = Instantiate<GameObject>(obj);
+				newObj.name = (string)rpcData.args [1];
+				if (rpcData.args.Length > 2) {
+					newObj.transform.position = new Vector3( (float)rpcData.args [2], (float)rpcData.args [3], (float)rpcData.args [4]); //arg 2,3,4 are x,y,z
+					newObj.transform.rotation = new Quaternion( (float)rpcData.args [5], (float)rpcData.args [6], (float)rpcData.args [7], (float)rpcData.args [8]); //arg 5,6,7,8 are x,y,z,w
+				}
+			}
 		}
 	}
 
+	private IEnumerator AnimateObj(GameObject gameObject, Vector3 dest, float timeInSec){
+		Vector3 start = gameObject.transform.position;
+		float time = 0f;
+
+		while (time < timeInSec) {
+			yield return new WaitForFixedUpdate();
+			gameObject.transform.position = Vector3.Lerp(start, dest, time/timeInSec);
+			time += Time.deltaTime;
+		}
+
+	}
 
 	/// <summary>
 	/// This method handles when the VR display disconnects in order to restart the app and listen for a new connection
@@ -240,7 +339,8 @@ public class NaviMobileManager : MonoBehaviour {
 			background.texture = null;
 		}
 
-		background.color = new Color (.227f, .227f, .227f);
+		background.color = new Color (.227f, .227f, .227f, 0f);
+		Application.LoadLevel (1);
 	}
 
 	/// <summary>

@@ -43,35 +43,41 @@ public class NaviConnectionSDK : MonoBehaviour {
 	public NaviDevice DeviceLocationPrefab;
 
 	public static NaviConnectionSDK Instance;
-	
+
 	//	Events that occur during setup of the Navi connection	
 	public delegate void DeviceAction(int connectionID );
 	public static event DeviceAction OnDeviceConnected; 
 	public static event DeviceAction OnDeviceDisconnected;
-	
+
 	public delegate void GameStartAction();
 	public static event GameStartAction OnGameStart;
-	
+
 	public delegate void PoseAction(int connectionID, Vector3 position, Quaternion rotation);
 	public static event PoseAction OnPoseData;
-	
+
 	public delegate void AccelerationAction(int connectionID, Vector3 acceleration);
 	public static event AccelerationAction OnAccelerationData;
-	
+
 	public delegate void HMDResetAction();
 	public static event HMDResetAction OnResetHMD; //add your event here in case you want to do anything special on recenterting
 
+	public float LoadingPercent = 0f; //a property that is set while an asset bundle is being uploaded
+	public delegate void AssetUploadedAction(int player_id);
+	public static event AssetUploadedAction OnAssetUploaded; //add your event here in case you want to do anything special on recenterting
+
+
 	//total number of devices we support for app
 	public const int NUM_CONNECTIONS = 2;
-	
+
 	public const int SERVER_PORT = 8888;
 	public const int UDP_SERVER_PORT = 1204;
 	public const int REMOTE_PORT = 19784;
-	
+
 	private const int BUFFER_SIZE = 1024;
-	
+	private const int ASSET_SEND_SIZE = 20000;
+
 	private const int SDK_BUILD_NO = 1; //current SDK version ID that will be sent to the mobile app for proper sync
-	
+
 	//keywords that trigger events on the smart device
 	private const string SEND_DATA_METHOD_STR = "SendData";
 	private const string RESET_STR = "Reset";
@@ -81,28 +87,36 @@ public class NaviConnectionSDK : MonoBehaviour {
 	private const string VIBRATE_ID = "Vibrate";
 	private const string INSTRUCTION_ID = "SetInstruction";
 	private const string IMAGE_ID = "SetImage";
-	
+	private const string ASSET_ID = "SetBundle";
+
+	private const string GAMEOBJ_LOC_ID = "SetGameObjLoc";
+	private const string GAMEOBJ_ROT_ID = "SetGameObjRot";
+	private const string GAMEOBJ_ANIM_ID = "SetGameObjAnim";
+	private const string GAMEOBJ_RENDER_ID = "SetGameObjRendState";
+	private const string GAMEOBJ_DUP_ID = "DupGameObject";
+	private const string GAMEOBJ_DEL_ID = "DeleteGameObject";
+
 	private const string TOUCH_METHOD_ID = "TouchIO";
 	private const string SET_SIZE_METHOD_ID = "SetSize";
 
 	private const string CONTROL_INSTRUCTIONS = "Controls:\n1.Tap with 5 fingers to reset\n2.To change controller #, tap with 5 fingers and then touch the screen with number of fingers\n= the device number\nuntil vibrates";
-	
+
 	//Used to find navi application on smart device
 	private UdpClient sender;
-	
+
 	[HideInInspector]
 	public int socketID;
-	
+
 	[HideInInspector]
 	public List<NaviDevice> playerConnectionIds = new List<NaviDevice>();	//list of all connected devices; index is player id 
-	
+
 	[HideInInspector]
-	public int myReiliableChannelId;
+	public int myReliableChannelId;
 	[HideInInspector]
 	public int myUnreliableChannelId;
 	[HideInInspector]
 	public int myReliableFragmentedChannelId;
-	
+
 	//Used to start game for the first time
 	private bool initalReset = true;
 
@@ -117,9 +131,9 @@ public class NaviConnectionSDK : MonoBehaviour {
 		if (playerID == 0) {
 			if (OnResetHMD != null)
 				OnResetHMD (); 
-		
+
 			ResetDevice ();
-		
+
 			if (OnGameStart != null && initalReset) {
 				initalReset = false;
 				OnGameStart ();
@@ -144,7 +158,8 @@ public class NaviConnectionSDK : MonoBehaviour {
 		}
 	}
 
-	public void SwitchPlayerIds(int playerID, int fingerID, Vector2 pos){
+	//Method that switches the id of the controller based on the number of fingers tapped
+	private void SwitchPlayerIds(int playerID, int fingerID, Vector2 pos){
 		NaviDevice dev = GetPlayerPose (playerID);
 		if (dev.playerSwitchEnabled && (Time.time - dev.playerResetTimer) >= ResetHoldTime) { // hold num fingers on screen for required time
 			int dev2PlayerID = dev.numFingersDown - 1;
@@ -170,8 +185,8 @@ public class NaviConnectionSDK : MonoBehaviour {
 			RPCSerializer rpc = new RPCSerializer();
 			rpc.methodName = VIBRATE_ID;
 			formatter.Serialize(stream, rpc);
-			NetworkTransport.Send(socketID, dev.connectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error); 
-			NetworkTransport.Send(socketID, dev2.connectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error); 
+			NetworkTransport.Send(socketID, dev.connectionID, myReliableChannelId, buffer, BUFFER_SIZE, out error); 
+			NetworkTransport.Send(socketID, dev2.connectionID, myReliableChannelId, buffer, BUFFER_SIZE, out error); 
 
 			dev.playerSwitchEnabled = false;
 		}
@@ -191,16 +206,17 @@ public class NaviConnectionSDK : MonoBehaviour {
 		byte[] buffer = new byte[BUFFER_SIZE];
 		Stream stream = new MemoryStream(buffer);
 		byte error;
-		
+
 		//send player id
 		RPCSerializer rpc = new RPCSerializer();
 		rpc.methodName = ASSIGN_DEVICE_ID;
 		rpc.args = new object[1];
 		rpc.args [0] = newID+1;
 		formatter.Serialize(stream, rpc);
-		NetworkTransport.Send(socketID, currConnection, myReiliableChannelId, buffer, BUFFER_SIZE, out error); 
+		NetworkTransport.Send(socketID, currConnection, myReliableChannelId, buffer, BUFFER_SIZE, out error); 
 	}
 
+	//sends an image to the given controller
 	public void SendImage(int player_id, Texture2D tex){
 		int connection_id = GetPlayerPose (player_id).connectionID;
 
@@ -210,7 +226,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 		byte[] buffer = new byte[bytesTex.Length + BUFFER_SIZE];
 		Stream stream = new MemoryStream(buffer);
 		byte error;
-		
+
 		//send player id
 		RPCSerializer rpc = new RPCSerializer();
 		rpc.methodName = IMAGE_ID;
@@ -220,25 +236,249 @@ public class NaviConnectionSDK : MonoBehaviour {
 		NetworkTransport.Send(socketID, connection_id, myReliableFragmentedChannelId, buffer, buffer.Length, out error); 
 	}
 
+	//moves a gameobject on the given controller
+	public void SetObjLocation(int player_id, string objName, Vector3 location){
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		//send player id
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = GAMEOBJ_LOC_ID;
+		rpc.args = new object[4];
+		rpc.args [0] = objName;
+		rpc.args [1] = location.x;
+		rpc.args [2] = location.y;
+		rpc.args [3] = location.z;
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
+	}
+
+	//animates a gamoebject to a certain location over a set amount of time for a given controller
+	public void AnimObjLocation(int player_id, string objName, Vector3 location, float time){
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		//send player id
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = GAMEOBJ_ANIM_ID;
+		rpc.args = new object[5];
+		rpc.args [0] = objName;
+		rpc.args [1] = location.x;
+		rpc.args [2] = location.y;
+		rpc.args [3] = location.z;
+		rpc.args [4] = time;
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
+	}
+
+	//determines whether or not to render a given object (and its children objects) for a given controller
+	public void RenderObj(int player_id, string objName, bool render){
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		//send player id
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = GAMEOBJ_RENDER_ID;
+		rpc.args = new object[4];
+		rpc.args [0] = objName;
+		rpc.args [1] = render;
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
+	}
+
+	//sets the orientation for a gameobject on a given player's controller
+	public void SetObjRotation(int player_id, string objName, Quaternion rot){
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		//send player id
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = GAMEOBJ_ROT_ID;
+		rpc.args = new object[5];
+		rpc.args [0] = objName;
+		rpc.args [1] = rot.x;
+		rpc.args [2] = rot.y;
+		rpc.args [3] = rot.z;
+		rpc.args [4] = rot.w;
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
+	}
+
+	//destroy a gameobject for a given player
+	public void DestroyObj(int player_id, string objName){
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		//send player id
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = GAMEOBJ_DEL_ID;
+		rpc.args = new object[1];
+		rpc.args [0] = objName;
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
+	}
+
+	//dupliactes an object that exists on the player's controller. 
+	public void DuplicateObj(int player_id, string objName, string newName, Vector3 pos, Quaternion rot){
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		//send player id
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = GAMEOBJ_DUP_ID;
+		rpc.args = new object[9];
+		rpc.args [0] = objName;
+		rpc.args [1] = newName;
+
+		rpc.args [2] = pos.x;
+		rpc.args [3] = pos.y;
+		rpc.args [4] = pos.z;
+
+		rpc.args [5] = rot.x;
+		rpc.args [6] = rot.y;
+		rpc.args [7] = rot.z;
+		rpc.args [8] = rot.w;
+
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
+	}
+
+	//sends the asset bundle and begins sending the file in chunks
+	public void SendAssetBundle(int player_id, TextAsset assetFile){
+		byte[] bytesTex = assetFile.bytes;
+
+		StartCoroutine (SendAssetData (player_id, bytesTex));
+	}
+
+	private IEnumerator SendAssetData(int player_id, byte[] file){
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[ASSET_SEND_SIZE + BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		//send player id
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = ASSET_ID;
+		rpc.args = new object[2];
+		rpc.args [0] = 0;
+		rpc.args [1] = file.Length;
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableFragmentedChannelId, buffer, buffer.Length, out error); 
+		yield return new WaitForSeconds(.5f); //wait for network packets to send
+
+		for (int i = 0; i < file.Length; i+=ASSET_SEND_SIZE) {
+			buffer = new byte[ASSET_SEND_SIZE + BUFFER_SIZE];
+			stream = new MemoryStream(buffer);
+
+			int remaining = file.Length - i;
+			int l = ASSET_SEND_SIZE > remaining ? remaining : ASSET_SEND_SIZE;
+			byte[] data = new byte[l];
+			for (int j = 0; j < l; j++) {
+				data [j] = file [i + j];
+			}
+
+			rpc = new RPCSerializer();
+			rpc.methodName = ASSET_ID;
+			rpc.args = new object[3];
+			rpc.args [0] = 1; //set index
+			rpc.args [1] = i;
+			rpc.args [2] = data;
+			formatter.Serialize(stream, rpc);
+			NetworkTransport.Send(socketID, connection_id, myReliableFragmentedChannelId, buffer, buffer.Length, out error); 
+			LoadingPercent = ((float)i / (float)file.Length);
+			NaviConnectionSDK.Instance.SetInstructions (player_id, "Loading\n"+ (int) (LoadingPercent * 100f) + "%");	
+
+			while (error != 0) {
+				yield return new WaitForSeconds(.1f); //wait for network packets to clear
+				NetworkTransport.Send(socketID, connection_id, myReliableFragmentedChannelId, buffer, buffer.Length, out error); 
+			}
+		}
+
+		yield return new WaitForSeconds(.5f); //wait for network packets to send
+
+		buffer = new byte[ASSET_SEND_SIZE + BUFFER_SIZE];
+		stream = new MemoryStream(buffer);
+
+		rpc = new RPCSerializer();
+		rpc.methodName = ASSET_ID;
+		rpc.args = new object[1];
+		rpc.args [0] = -1;
+		formatter.Serialize(stream, rpc);
+
+		NetworkTransport.Send(socketID, connection_id, myReliableFragmentedChannelId, buffer, buffer.Length, out error); 
+
+		while (error != 0) {
+			yield return new WaitForSeconds(.1f); //wait for network packets to clear
+			NetworkTransport.Send(socketID, connection_id, myReliableFragmentedChannelId, buffer, buffer.Length, out error); 
+		}
+
+		NaviConnectionSDK.Instance.SetInstructions (player_id, "");	
+		if (OnAssetUploaded != null)
+			OnAssetUploaded (player_id);
+	}
+
+	//sets the main text that the player can see on their device
+	public void SetInstructions(int player_id, string instructions){
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[ASSET_SEND_SIZE + BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = INSTRUCTION_ID;
+		rpc.args = new object[1];
+		rpc.args[0] = instructions; 
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, BUFFER_SIZE, out error); 
+	}
+
 	/// <summary>
 	/// Public Method to reset just the smart device
 	/// </summary>
 	public void ResetDevice(){
 		sender.Send (Encoding.ASCII.GetBytes (RESET_STR), RESET_STR.Length);
 	}
-	
+
 	/// <summary>
 	/// First function that is called when scene is loading
 	/// </summary>
 	void Awake(){
 		OnResetHMD += UnityEngine.VR.InputTracking.Recenter; //defaults to recenter DK2 or GearVR
-		
+
 		if (Instance == null)
 			Instance = this;
-		
+
 		DontDestroyOnLoad (this.gameObject); //makes sure this game object or its children does not get destroyed when switching scenes
 	}
-	
+
 	/// <summary>
 	/// Called after Gameobject is initalized. We start sending packets to find Navi-compatible devices
 	/// </summary>
@@ -248,11 +488,11 @@ public class NaviConnectionSDK : MonoBehaviour {
 		TouchManager.OnTouchMove += SwitchPlayerIds;
 		TouchManager.OnTouchStayed += SwitchPlayerIds;
 		TouchManager.OnTouchUp += TouchUp;
-		
+
 		CreateSocket ();
 		StartSendingIP (); //should always be broadcasting and looking for other devices
 	}
-	
+
 	/// <summary>
 	/// Called every frame to process Network events.
 	/// </summary>
@@ -265,7 +505,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 		int dataSize;
 		byte error;
 		NetworkEventType recData = NetworkTransport.Receive(out recSocketId, out connectionId, out channelId, recBuffer, BUFFER_SIZE, out dataSize, out error);
-		
+
 		while (recData != NetworkEventType.Nothing) { 
 			//TODO add some limit so that it does not stall from this while loop i.e. 1000 loops or something
 			switch (recData) {
@@ -277,18 +517,18 @@ public class NaviConnectionSDK : MonoBehaviour {
 			case NetworkEventType.DataEvent: //data was received
 				if (channelId == myUnreliableChannelId)
 					HandlePoseData (connectionId, recBuffer);
-				else if (channelId == myReiliableChannelId)
+				else if (channelId == myReliableChannelId)
 					HandleRPC (connectionId, recBuffer);
 				break;
 			case NetworkEventType.DisconnectEvent: //device disconnected
 				OnDisconnect (connectionId);
 				break;
 			}
-			
+
 			recData = NetworkTransport.Receive(out recSocketId, out connectionId, out channelId, recBuffer, BUFFER_SIZE, out dataSize, out error);
 		}
 	}
-	
+
 	/// <summary>
 	/// Called when object is destroyed i.e. when game ends
 	/// </summary>
@@ -308,7 +548,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 			return null;
 		}
 	}
-	
+
 	/// <summary>
 	/// Method to parse and send an event when Pose Data is transfer from smart device
 	/// </summary>
@@ -318,11 +558,11 @@ public class NaviConnectionSDK : MonoBehaviour {
 		Stream stream = new MemoryStream(recBuffer);
 		BinaryFormatter formatter = new BinaryFormatter();
 		PoseSerializerWithAcceleration poseData = (PoseSerializerWithAcceleration)formatter.Deserialize (stream);
-		
+
 		if (OnPoseData != null) {
 			OnPoseData (connectionID, poseData.Position, poseData.Rotation);
 		}
-		
+
 		if (OnAccelerationData != null) {
 			OnAccelerationData (connectionID, poseData.Acceleration);
 		}
@@ -341,7 +581,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 		}
 		return -1;
 	}
-	
+
 	/// <summary>
 	/// Method to parse and send an RPC event from smart device such as recieving touch input
 	/// </summary>
@@ -368,9 +608,9 @@ public class NaviConnectionSDK : MonoBehaviour {
 		} else if (rpcData.methodName.Equals (SET_SIZE_METHOD_ID)) {
 			dev.SetServerScreenSize((int)rpcData.args[0], (int)rpcData.args[1]);
 		}
-		
+
 	}
-	
+
 	/// <summary>
 	/// Method that is called when one of the connection disconnects. 
 	/// </summary>
@@ -381,7 +621,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 			NaviDevice naviDevice = playerConnectionIds[i];
 			if ( naviDevice.connectionID == connectionID){
 				playerConnectionIds.Remove (naviDevice);
-				GameObject.Destroy(naviDevice);
+				GameObject.Destroy(naviDevice.gameObject);
 
 				if (OnDeviceDisconnected != null)
 					OnDeviceDisconnected(i);
@@ -420,35 +660,36 @@ public class NaviConnectionSDK : MonoBehaviour {
 		rpc.args = new object[1];
 		rpc.args [0] = playerID;
 		formatter.Serialize(stream, rpc);
-		NetworkTransport.Send(socketID, connectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error); 
+		NetworkTransport.Send(socketID, connectionID, myReliableChannelId, buffer, BUFFER_SIZE, out error); 
 
 		//send build number
 		buffer = new byte[BUFFER_SIZE];
 		stream = new MemoryStream(buffer);
-		
+
 		rpc = new RPCSerializer();
 		rpc.methodName = BUILD_MESSAGE_ID;
 		rpc.args = new object[1];
 		rpc.args[0] = SDK_BUILD_NO; 
 		formatter.Serialize(stream, rpc);
-		NetworkTransport.Send(socketID, connectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error); 
+		NetworkTransport.Send(socketID, connectionID, myReliableChannelId, buffer, BUFFER_SIZE, out error); 
 
 		//send instructions
 		buffer = new byte[BUFFER_SIZE];
 		stream = new MemoryStream(buffer);
-		
+
 		rpc = new RPCSerializer();
 		rpc.methodName = INSTRUCTION_ID;
 		rpc.args = new object[1];
 		rpc.args[0] = CONTROL_INSTRUCTIONS; 
 		formatter.Serialize(stream, rpc);
-		NetworkTransport.Send(socketID, connectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error); 
-		
+		NetworkTransport.Send(socketID, connectionID, myReliableChannelId, buffer, BUFFER_SIZE, out error); 
+
 		if (OnDeviceConnected != null) {
 			OnDeviceConnected ( GetPlayerID(connectionID) );
 		}
 	}
-	
+
+
 	/// <summary>
 	/// Method that will start broadcasting packets to find a smart device
 	/// </summary>
@@ -457,10 +698,10 @@ public class NaviConnectionSDK : MonoBehaviour {
 		sender = new UdpClient (NaviConnectionSDK.UDP_SERVER_PORT, AddressFamily.InterNetwork);
 		IPEndPoint groupEP = new IPEndPoint (IPAddress.Broadcast, NaviConnectionSDK.REMOTE_PORT);
 		sender.Connect (groupEP);
-		
+
 		InvokeRepeating(SEND_DATA_METHOD_STR,0,0.5f); //send data every half a second
 	}
-	
+
 	/// <summary>
 	/// Method that is called on an interval to broadcast the ipAddress for listening devices
 	/// </summary>
@@ -468,29 +709,29 @@ public class NaviConnectionSDK : MonoBehaviour {
 	{
 		//TODO: consider sending the port number as well
 		string ipAddress = Network.player.ipAddress.ToString();
-		
+
 		if (ipAddress != "") {
 			sender.Send (Encoding.ASCII.GetBytes (ipAddress), ipAddress.Length);
 		}
-		
+
 	}
-	
+
 	/// <summary>
 	/// Method that creates the socket on the PC that will be used for receiving data
 	/// </summary>
 	private void CreateSocket(){
 		NetworkTransport.Init();
 		ConnectionConfig config = new ConnectionConfig();
-		
-		myReiliableChannelId  = config.AddChannel(QosType.Reliable);
+
+		myReliableChannelId  = config.AddChannel(QosType.Reliable);
 		myUnreliableChannelId = config.AddChannel(QosType.Unreliable);
 		myReliableFragmentedChannelId = config.AddChannel(QosType.ReliableFragmented);
-		
+
 		HostTopology topology = new HostTopology(config, NUM_CONNECTIONS); //only supports one other connection
-		
+
 		socketID = NetworkTransport.AddHost(topology, NaviConnectionSDK.SERVER_PORT);
 	}
-	
+
 	/// <summary>
 	/// Method that is called when a smart device connects
 	/// </summary>
