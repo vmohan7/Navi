@@ -61,13 +61,18 @@ public class NaviConnectionSDK : MonoBehaviour {
 	public delegate void HMDResetAction();
 	public static event HMDResetAction OnResetHMD; //add your event here in case you want to do anything special on recenterting
 
+	public delegate void KeyboardAction(int player_id, string currText);
+	public static event KeyboardAction OnKeyboardText; //add your event here in case you want to do anything special on recenterting
+	public static event KeyboardAction OnKeyboardClosed; //add your event here in case you want to do anything special on recenterting
+
+	[HideInInspector]
 	public float LoadingPercent = 0f; //a property that is set while an asset bundle is being uploaded
 	public delegate void AssetUploadedAction(int player_id);
 	public static event AssetUploadedAction OnAssetUploaded; //add your event here in case you want to do anything special on recenterting
 
 
 	//total number of devices we support for app
-	public const int NUM_CONNECTIONS = 2;
+	public const int NUM_CONNECTIONS = 4;
 
 	public const int SERVER_PORT = 8888;
 	public const int UDP_SERVER_PORT = 1204;
@@ -86,7 +91,6 @@ public class NaviConnectionSDK : MonoBehaviour {
 	private const string ASSIGN_DEVICE_ID = "DeviceNo";
 	private const string VIBRATE_ID = "Vibrate";
 	private const string INSTRUCTION_ID = "SetInstruction";
-	private const string IMAGE_ID = "SetImage";
 	private const string ASSET_ID = "SetBundle";
 
 	private const string GAMEOBJ_LOC_ID = "SetGameObjLoc";
@@ -98,6 +102,15 @@ public class NaviConnectionSDK : MonoBehaviour {
 
 	private const string TOUCH_METHOD_ID = "TouchIO";
 	private const string SET_SIZE_METHOD_ID = "SetSize";
+
+	private const string OPEN_KEYBOARD_ID = "OpenKey";
+	private const string CLOSE_KEYBOARD_ID = "CloseKey";
+	private const string SEND_KEYBOARD_ID = "SendKey";
+	private const string CLEAR_KEYBOARD_ID = "ClearKey";
+
+	private const string SET_DEVICE_ROTATION_ID = "RotationKey";
+
+	private const string IP_SPLITER = "N4V1_SPLIT"; 
 
 	private const string CONTROL_INSTRUCTIONS = "Controls:\n1.Tap with 5 fingers to reset\n2.To change controller #, tap with 5 fingers and then touch the screen with number of fingers\n= the device number\nuntil vibrates";
 
@@ -146,8 +159,11 @@ public class NaviConnectionSDK : MonoBehaviour {
 		dev.playerSwitchEnabled = true;
 	}
 
-	//TODO: comment what is going on here
-	//Basic is that immediately after a reset, you need to hold X fingers on the device for 5 seconds, where X is the player number you would like to become
+	/// <summary>
+	/// After a reset this method is called, if the player would like to change which device number they are. 
+	/// To change which device number they are, they need to hold & press the number of fingers of the device they want to become.
+	/// I.e. if they want to become player 2, they touch their device with 2 fingers.
+	/// </summary>
 	public void StartPlayerSwitchIds(int playerID, int fingerID, Vector2 pos){
 		NaviDevice dev = GetPlayerPose (playerID);
 		dev.numFingersDown++;
@@ -158,8 +174,10 @@ public class NaviConnectionSDK : MonoBehaviour {
 		}
 	}
 
-	//Method that switches the id of the controller based on the number of fingers tapped
-	private void SwitchPlayerIds(int playerID, int fingerID, Vector2 pos){
+	/// <summary>
+	/// Method that is called when a player wants to switch to a given device id.
+	/// </summary>
+	public void SwitchPlayerIds(int playerID, int fingerID, Vector2 pos){
 		NaviDevice dev = GetPlayerPose (playerID);
 		if (dev.playerSwitchEnabled && (Time.time - dev.playerResetTimer) >= ResetHoldTime) { // hold num fingers on screen for required time
 			int dev2PlayerID = dev.numFingersDown - 1;
@@ -192,6 +210,9 @@ public class NaviConnectionSDK : MonoBehaviour {
 		}
 	}
 
+	/// <summary>
+	/// Listener for when the user touches up on the device
+	/// </summary>
 	public void TouchUp(int playerID, int fingerID, Vector2 pos){
 		NaviDevice dev = GetPlayerPose (playerID);
 		dev.numFingersDown--;
@@ -201,6 +222,9 @@ public class NaviConnectionSDK : MonoBehaviour {
 		}
 	}
 
+	/// <summary>
+	/// Method to tell that device that it has changed to a different player number
+	/// </summary>
 	private void ChangePlayerID(int newID, int currConnection){
 		BinaryFormatter formatter = new BinaryFormatter();
 		byte[] buffer = new byte[BUFFER_SIZE];
@@ -216,27 +240,87 @@ public class NaviConnectionSDK : MonoBehaviour {
 		NetworkTransport.Send(socketID, currConnection, myReliableChannelId, buffer, BUFFER_SIZE, out error); 
 	}
 
-	//sends an image to the given controller
-	public void SendImage(int player_id, Texture2D tex){
+	/// <summary>
+	/// Method to tell connected device that it should open its mobile keyboard
+	/// </summary>
+	public void OpenMobileKeyboard(int player_id, string initalText, bool hideInputOnKeyboards){
 		int connection_id = GetPlayerPose (player_id).connectionID;
 
-		byte[] bytesTex = tex.EncodeToPNG ();
-
 		BinaryFormatter formatter = new BinaryFormatter();
-		byte[] buffer = new byte[bytesTex.Length + BUFFER_SIZE];
+		byte[] buffer = new byte[BUFFER_SIZE];
 		Stream stream = new MemoryStream(buffer);
 		byte error;
 
 		//send player id
 		RPCSerializer rpc = new RPCSerializer();
-		rpc.methodName = IMAGE_ID;
-		rpc.args = new object[1];
-		rpc.args [0] = bytesTex;
+		rpc.methodName = OPEN_KEYBOARD_ID;
+		rpc.args = new object[2];
+		rpc.args [0] = initalText;
+		rpc.args [1] = hideInputOnKeyboards; //broken on Android
 		formatter.Serialize(stream, rpc);
-		NetworkTransport.Send(socketID, connection_id, myReliableFragmentedChannelId, buffer, buffer.Length, out error); 
+		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
 	}
 
-	//moves a gameobject on the given controller
+	/// <summary>
+	/// Method to close mobile keyboard on device
+	/// </summary>
+	public void CloseMobileKeyboard(int player_id){
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		//send player id
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = CLOSE_KEYBOARD_ID;
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
+	}
+
+	/// <summary>
+	/// Method to clear the text on the mobile keyboard
+	/// </summary>
+	public void ClearMobileKeyboard(int player_id) {
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		//send player id
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = CLEAR_KEYBOARD_ID;
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
+	}
+
+	/// <summary>
+	/// Method to set the device orientation on the mobile device. This uses Unity's enum and sends that to the device
+	/// </summary>
+	public void SetDeviceOrientaton(int player_id, ScreenOrientation orient, bool canUserChange) {
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		//send player id
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = SET_DEVICE_ROTATION_ID;
+		rpc.args = new object[2];
+		rpc.args [0] = orient;
+		rpc.args [1] = canUserChange;
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
+	}
+
+	/// <summary>
+	/// Sets the location of a gameobject located on the mobile device. This should be used after you have uploaded an asset bundle to the device. 
+	/// </summary>
 	public void SetObjLocation(int player_id, string objName, Vector3 location){
 		int connection_id = GetPlayerPose (player_id).connectionID;
 
@@ -257,7 +341,10 @@ public class NaviConnectionSDK : MonoBehaviour {
 		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
 	}
 
-	//animates a gamoebject to a certain location over a set amount of time for a given controller
+
+	/// <summary>
+	/// Animates a gameobject to a given location on the mobile device. This should be used after you have uploaded an asset bundle to the device. 
+	/// </summary>
 	public void AnimObjLocation(int player_id, string objName, Vector3 location, float time){
 		int connection_id = GetPlayerPose (player_id).connectionID;
 
@@ -279,7 +366,10 @@ public class NaviConnectionSDK : MonoBehaviour {
 		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
 	}
 
-	//determines whether or not to render a given object (and its children objects) for a given controller
+
+	/// <summary>
+	/// Sets whether to render a gameobject located on the mobile device. This should be used after you have uploaded an asset bundle to the device. 
+	/// </summary>
 	public void RenderObj(int player_id, string objName, bool render){
 		int connection_id = GetPlayerPose (player_id).connectionID;
 
@@ -298,7 +388,10 @@ public class NaviConnectionSDK : MonoBehaviour {
 		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
 	}
 
-	//sets the orientation for a gameobject on a given player's controller
+
+	/// <summary>
+	/// Sets the rotation of a gameobject located on the mobile device. This should be used after you have uploaded an asset bundle to the device. 
+	/// </summary>
 	public void SetObjRotation(int player_id, string objName, Quaternion rot){
 		int connection_id = GetPlayerPose (player_id).connectionID;
 
@@ -320,7 +413,10 @@ public class NaviConnectionSDK : MonoBehaviour {
 		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
 	}
 
-	//destroy a gameobject for a given player
+
+	/// <summary>
+	/// Destroys a gameobject located on the mobile device. This should be used after you have uploaded an asset bundle to the device. 
+	/// </summary>
 	public void DestroyObj(int player_id, string objName){
 		int connection_id = GetPlayerPose (player_id).connectionID;
 
@@ -338,7 +434,10 @@ public class NaviConnectionSDK : MonoBehaviour {
 		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
 	}
 
-	//dupliactes an object that exists on the player's controller. 
+
+	/// <summary>
+	/// Duplicate a gameobject located on the mobile device. This should be used after you have uploaded an asset bundle to the device. 
+	/// </summary>
 	public void DuplicateObj(int player_id, string objName, string newName, Vector3 pos, Quaternion rot){
 		int connection_id = GetPlayerPose (player_id).connectionID;
 
@@ -367,13 +466,19 @@ public class NaviConnectionSDK : MonoBehaviour {
 		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
 	}
 
-	//sends the asset bundle and begins sending the file in chunks
+
+	/// <summary>
+	/// Sends an asset bundle to to the mobile device in order to render the scene 
+	/// </summary>
 	public void SendAssetBundle(int player_id, TextAsset assetFile){
 		byte[] bytesTex = assetFile.bytes;
 
 		StartCoroutine (SendAssetData (player_id, bytesTex));
 	}
-
+		
+	/// <summary>
+	/// Private method to iteratively send asset data to the mobile device, because in general that file will be too big 
+	/// </summary>
 	private IEnumerator SendAssetData(int player_id, byte[] file){
 		int connection_id = GetPlayerPose (player_id).connectionID;
 
@@ -392,6 +497,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 		NetworkTransport.Send(socketID, connection_id, myReliableFragmentedChannelId, buffer, buffer.Length, out error); 
 		yield return new WaitForSeconds(.5f); //wait for network packets to send
 
+		//for loop to send chunks of data to the device
 		for (int i = 0; i < file.Length; i+=ASSET_SEND_SIZE) {
 			buffer = new byte[ASSET_SEND_SIZE + BUFFER_SIZE];
 			stream = new MemoryStream(buffer);
@@ -431,6 +537,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 		rpc.args [0] = -1;
 		formatter.Serialize(stream, rpc);
 
+		//sends asset bundle completed message
 		NetworkTransport.Send(socketID, connection_id, myReliableFragmentedChannelId, buffer, buffer.Length, out error); 
 
 		while (error != 0) {
@@ -443,7 +550,9 @@ public class NaviConnectionSDK : MonoBehaviour {
 			OnAssetUploaded (player_id);
 	}
 
-	//sets the main text that the player can see on their device
+	/// <summary>
+	/// Method to set the instructions on the instruction panel screen of the mobile device
+	/// </summary>
 	public void SetInstructions(int player_id, string instructions){
 		int connection_id = GetPlayerPose (player_id).connectionID;
 
@@ -606,9 +715,14 @@ public class NaviConnectionSDK : MonoBehaviour {
 			TouchSerializer ts = (TouchSerializer)rpcData.args [0];
 			TouchManager.ProcessTouch (playerID, ts);
 		} else if (rpcData.methodName.Equals (SET_SIZE_METHOD_ID)) {
-			dev.SetServerScreenSize((int)rpcData.args[0], (int)rpcData.args[1]);
+			dev.SetServerScreenSize ((int)rpcData.args [0], (int)rpcData.args [1]);
+		} else if (rpcData.methodName.Equals (SEND_KEYBOARD_ID)) {
+			if (OnKeyboardText != null)
+				OnKeyboardText (playerID, (string)rpcData.args [0]);
+		} else if (rpcData.methodName.Equals (CLOSE_KEYBOARD_ID)) {
+			if (OnKeyboardClosed != null)
+				OnKeyboardClosed (playerID, (string)rpcData.args [0]);
 		}
-
 	}
 
 	/// <summary>
@@ -689,6 +803,22 @@ public class NaviConnectionSDK : MonoBehaviour {
 		}
 	}
 
+	#if UNITY_ANDROID && !UNITY_EDITOR
+	AndroidJavaObject hotspotJavaObj = null;
+
+	public AndroidJavaObject GetMobileHotspotObj(){
+	if (hotspotJavaObj == null) {
+	hotspotJavaObj = new AndroidJavaObject("navi.net.androidhotspot.MobileHotspot");
+	AndroidJavaClass jc = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+	AndroidJavaObject jo = jc.GetStatic<AndroidJavaObject>("currentActivity");
+	hotspotJavaObj.Call("SetUnityActivity", jo);
+	}
+
+	return hotspotJavaObj;
+	}
+
+	#endif
+
 
 	/// <summary>
 	/// Method that will start broadcasting packets to find a smart device
@@ -696,10 +826,20 @@ public class NaviConnectionSDK : MonoBehaviour {
 	private void StartSendingIP ()
 	{
 		sender = new UdpClient (NaviConnectionSDK.UDP_SERVER_PORT, AddressFamily.InterNetwork);
-		IPEndPoint groupEP = new IPEndPoint (IPAddress.Broadcast, NaviConnectionSDK.REMOTE_PORT);
+		IPEndPoint groupEP;
+		#if UNITY_ANDROID && !UNITY_EDITOR
+		string hsIP = GetMobileHotspotObj().Call<string>("getBroadcastAddress");
+		if (hsIP != null) {
+		groupEP = new IPEndPoint (IPAddress.Parse( hsIP ), NaviConnectionSDK.REMOTE_PORT);
+		} else {
+		groupEP = new IPEndPoint (IPAddress.Broadcast, NaviConnectionSDK.REMOTE_PORT);
+		}
+		#else
+		groupEP = new IPEndPoint (IPAddress.Broadcast, NaviConnectionSDK.REMOTE_PORT);
+		#endif
 		sender.Connect (groupEP);
 
-		InvokeRepeating(SEND_DATA_METHOD_STR,0,0.5f); //send data every half a second
+		InvokeRepeating(SEND_DATA_METHOD_STR,0,0.3f); //send data every half a second
 	}
 
 	/// <summary>
@@ -709,9 +849,11 @@ public class NaviConnectionSDK : MonoBehaviour {
 	{
 		//TODO: consider sending the port number as well
 		string ipAddress = Network.player.ipAddress.ToString();
+		string message = Application.productName + IP_SPLITER + ipAddress;
 
-		if (ipAddress != "") {
-			sender.Send (Encoding.ASCII.GetBytes (ipAddress), ipAddress.Length);
+		if (message != "") {
+			byte[] b = Encoding.ASCII.GetBytes (message);
+			sender.Send (b, b.Length);
 		}
 
 	}

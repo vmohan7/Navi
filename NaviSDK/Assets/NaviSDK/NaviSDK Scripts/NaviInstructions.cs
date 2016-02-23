@@ -75,6 +75,8 @@ public class NaviInstructions : MonoBehaviour {
 	/// Coroutine to guide the user through the instructions on how to use their smart device
 	/// </summary>
 	IEnumerator InstructionGuide(){
+		NaviConnectionSDK.Instance.SetDeviceOrientaton (0, ScreenOrientation.LandscapeLeft, false);
+
 		SetInstruction (acknowledgeConnection);
 		TouchManager.OnTouchUp += OnPermissionTap;
 		while (!permissionInstruction) {

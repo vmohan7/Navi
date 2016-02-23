@@ -25,84 +25,68 @@ using System.Collections;
 /// </summary>
 public class GyroManager : TransformManagerInterface {
 	
-	private const float ScreenRotationThreshold = 0.7f; //Accelerometer threshold for switching orientation on reset
+	private const float ScreenRotationThreshold = 5f; //Accelerometer threshold for switching orientation on reset
+	private ScreenOrientation currOrient;
 
-	private bool isUpsideDown = false; //Boolean to detech if we are using upside down portrait, which requires a slightly different use of gyrp
-	private bool isReseting = false; //avoid multiple reset commands interfering with each other
-	private Quaternion initalRotation; //rotation of last reset
-
-	private Quaternion sensorFused = Quaternion.identity;
-	private const float SamplePeriod = 1f / 256f; //Might want to make this 1/60 fps
-	private const float Beta =  0.1f;
-
-	/// <summary>
-	///  Method to initalize the gyro at start of game
-	/// </summary>
-	void Start () {
-		// Activate the gyroscope
-		Input.gyro.enabled = true;
-		initalRotation = Quaternion.identity;
-
-	}
-	
 	/// <summary>
 	///  Gets gyro data and uses it to update rotation relative to reset position
 	/// </summary>
 	void Update () {
-		if (!isReseting) { //only change orientation if we are not reseting
-			Quaternion tempRot = Quaternion.identity;
-			ComputeRotation (out tempRot);
-			transform.rotation = Quaternion.Inverse (initalRotation) * tempRot;
-		}
-	}
-
-	/// <summary>
-	///  Computes the rotation from the gyro sensor data
-	/// </summary>
-	/// <param name="rot">The output rotation from this calculation</param> 
-	private void ComputeRotation(out Quaternion rot){
-		Quaternion att = Input.gyro.attitude;
-		if (isUpsideDown) {
-			att = new Quaternion(att.x, att.y, att.z, att.w);
-		} else {
-			att = new Quaternion(att.x, att.y, -att.z, -att.w);
-		}
-
-		rot = Quaternion.Euler(90f, 0f, 0f) * att;
+		transform.rotation =  ComputeRotation();
 	}
 
 	/// <summary>
 	///  How to reset the position of the device
 	/// </summary>
 	public override void Reset(){
-		StartCoroutine (ResetOrientation ()); //start a courtine to apply reset settings
+		ResetOrientation ();
+		Cardboard.SDK.Recenter ();
+	}
+
+	private Quaternion ComputeRotation() {
+		Quaternion temp = Cardboard.SDK.transform.GetChild (0).rotation;
+
+		if (currOrient == ScreenOrientation.Portrait) {
+			return Quaternion.Euler (0f, -270f, 0f) * temp * Quaternion.Euler (0f, 0f, -270f);
+		} else if (currOrient == ScreenOrientation.PortraitUpsideDown) {
+			return Quaternion.Euler (0f, -90f, 0f) * temp * Quaternion.Euler (0f, 0f, -90f);
+		} else if (currOrient == ScreenOrientation.LandscapeRight) {
+			return Quaternion.Euler (0f, -180f, 0f) * temp * Quaternion.Euler (0f, 0f, -180f);
+		} else {
+			return temp;
+		}
+
+		/*
+			if (Screen.orientation == ScreenOrientation.Portrait) {
+				return Quaternion.Euler (0f, -270f, 0f) * temp * Quaternion.Euler (0f, 0f, -270f);
+			} else if (Screen.orientation == ScreenOrientation.PortraitUpsideDown) {
+				return Quaternion.Euler (0f, -90f, 0f) * temp * Quaternion.Euler (0f, 0f, -90f);
+			} else if (Screen.orientation == ScreenOrientation.LandscapeRight) {
+				return Quaternion.Euler (0f, -180f, 0f) * temp * Quaternion.Euler (0f, 0f, -180f);
+			} else {
+				return temp;
+			}
+			*/
 	}
 
 	/// <summary>
-	///  Couroutine to apply approraite wait times for calibrating device and screen orientation
+	///  Method to approraitiatly rotate the device and screen orientation
 	/// </summary>
-	IEnumerator ResetOrientation() {
-		if (!isReseting) { //only reset if no other coroutine is reseting
-			isReseting = true;
-			Input.compensateSensors = false; //do not compensate for orientation, so that we get raw reading from accelerometer
-			yield return new WaitForSeconds(.05f); //wait a few frames for a fresh reading
-			isUpsideDown = false;
-			if (Input.acceleration.x < -ScreenRotationThreshold) {
-				Screen.orientation = ScreenOrientation.LandscapeLeft;
-			} else if (Input.acceleration.y < -ScreenRotationThreshold) {
-				Screen.orientation = ScreenOrientation.Portrait;
-			} else if (Input.acceleration.y > ScreenRotationThreshold) {
-				Screen.orientation = ScreenOrientation.PortraitUpsideDown;
-				isUpsideDown = true;
-			} else if (Input.acceleration.x > ScreenRotationThreshold) {
-				Screen.orientation = ScreenOrientation.LandscapeRight;
-			}
-			yield return new WaitForSeconds(.1f); //wait for device to switch orientations
-			Input.compensateSensors = true; //recompensate for orientation for the gyro orientation
-			yield return new WaitForSeconds(.05f); //wait a few frames for a fresh reading
-
-			ComputeRotation (out initalRotation); //used to reset inital position to be right in front of the camera  
-			isReseting = false; //done reseting
+	private void ResetOrientation() {
+		Vector3 cardboardRot = Cardboard.SDK.transform.GetChild (0).rotation.eulerAngles;
+		if ( (cardboardRot.z + ScreenRotationThreshold > 360f) || (0f > cardboardRot.z - ScreenRotationThreshold) ) {
+			currOrient = ScreenOrientation.LandscapeLeft;
+		} else if ( (cardboardRot.z - ScreenRotationThreshold < 270f) && (270f < cardboardRot.z + ScreenRotationThreshold) ) {
+			currOrient = ScreenOrientation.Portrait;
+		} else if ( (cardboardRot.z - ScreenRotationThreshold < 90f) && (90f < cardboardRot.z + ScreenRotationThreshold) ) {
+			currOrient = ScreenOrientation.PortraitUpsideDown;
+		} else if ( (cardboardRot.z - ScreenRotationThreshold < 180f) && (180f < cardboardRot.z + ScreenRotationThreshold) ) {
+			currOrient = ScreenOrientation.LandscapeRight;
 		}
+
+		if (NaviMobileManager.Instance.canUserResetOrientation)
+			Screen.orientation = currOrient;
+
+		NaviMobileManager.Instance.SendCurrentSize ();
 	}
 }
