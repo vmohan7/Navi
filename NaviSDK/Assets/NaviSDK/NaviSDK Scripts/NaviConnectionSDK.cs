@@ -49,6 +49,9 @@ public class NaviConnectionSDK : MonoBehaviour {
 	public static event DeviceAction OnDeviceConnected; 
 	public static event DeviceAction OnDeviceDisconnected;
 
+	public static event DeviceAction OnDeviceSizeChange;
+	public static event DeviceAction OnDevicePlatformRecieved;
+
 	public delegate void GameStartAction();
 	public static event GameStartAction OnGameStart;
 
@@ -476,7 +479,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 
 		StartCoroutine (SendAssetData (player_id, bytesTex));
 	}
-		
+
 	/// <summary>
 	/// Private method to iteratively send asset data to the mobile device, because in general that file will be too big 
 	/// </summary>
@@ -717,8 +720,16 @@ public class NaviConnectionSDK : MonoBehaviour {
 			TouchManager.ProcessTouch (playerID, ts);
 		} else if (rpcData.methodName.Equals (SET_SIZE_METHOD_ID)) {
 			dev.SetServerScreenSize ((int)rpcData.args [0], (int)rpcData.args [1]);
+
+			if (OnDeviceSizeChange != null)
+				OnDeviceSizeChange(playerID);
+
 		} else if (rpcData.methodName.Equals (SEND_PLATFORM_METHOD_ID)) {
 			dev.devicePlatform = (RuntimePlatform) rpcData.args [0];
+
+			if (OnDevicePlatformRecieved != null)
+				OnDevicePlatformRecieved(playerID);
+
 		} else if (rpcData.methodName.Equals (SEND_KEYBOARD_ID)) {
 			if (OnKeyboardText != null)
 				OnKeyboardText (playerID, (string)rpcData.args [0]);
