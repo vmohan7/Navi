@@ -95,6 +95,7 @@ public class NaviMobileManager : MonoBehaviour {
 	
 	private const string TOUCH_METHOD_ID = "TouchIO";
 	private const string SET_SIZE_METHOD_ID = "SetSize";
+	private const string SEND_PLATFORM_METHOD_ID = "SendPlatform";
 
 	private const string OPEN_KEYBOARD_ID = "OpenKey";
 	private const string CLOSE_KEYBOARD_ID = "CloseKey";
@@ -286,6 +287,7 @@ public class NaviMobileManager : MonoBehaviour {
 		} else if (rpcData.methodName.Equals (ASSIGN_DEVICE_ID)) {
 			SetDeviceNumber ((int)rpcData.args [0]);
 			SendCurrentSize ();
+			SendDeviceType ();
 		} else if (rpcData.methodName.Equals (VIBRATE_ID)) {
 			Handheld.Vibrate ();
 		} else if (rpcData.methodName.Equals (INSTRUCTION_ID)) {
@@ -361,6 +363,24 @@ public class NaviMobileManager : MonoBehaviour {
 		rpc.args = new object[2];
 		rpc.args [0] = Screen.width; 
 		rpc.args [1] = Screen.height; 
+		formatter.Serialize (stream, rpc);
+		NetworkTransport.Send (socketID, naviConnectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error);
+	}
+
+	/// <summary>
+	/// Send the device / platform type of the smart device to the VR device
+	/// </summary>
+	public void SendDeviceType() {
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte error;
+
+		byte[] buffer = new byte[BUFFER_SIZE];
+		Stream stream = new MemoryStream (buffer);
+
+		RPCSerializer rpc = new RPCSerializer ();
+		rpc.methodName = SEND_PLATFORM_METHOD_ID;
+		rpc.args = new object[1];
+		rpc.args [0] = Application.platform; 
 		formatter.Serialize (stream, rpc);
 		NetworkTransport.Send (socketID, naviConnectionID, myReiliableChannelId, buffer, BUFFER_SIZE, out error);
 	}

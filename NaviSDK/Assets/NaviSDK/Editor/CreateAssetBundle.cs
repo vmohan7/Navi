@@ -25,27 +25,48 @@ public class CreateAssetBundles
 {
 	private const string OUTPUT_PATH = "Assets/NaviSDK/AssetBundleOutput";
 
+	//please refresh the unity editor once the build is created so that the file names get updated
 	[MenuItem ("NaviSDK/Build AssetBundles")]
 	static void BuildAllAssetBundles ()
 	{
+
+		/* code to move asset bundles to old folder; buggy
 		DirectoryInfo info = new DirectoryInfo (OUTPUT_PATH);
 		FileInfo[] files = info.GetFiles ();
 		string oldPath = OUTPUT_PATH + "\\Old" + System.DateTime.Today.ToFileTime() + "\\";
 		Directory.CreateDirectory(oldPath);
 		foreach (FileInfo f in files) {
-			FileUtil.MoveFileOrDirectory (f.FullName, oldPath + f.Name);
+			if ((System.IO.File.GetAttributes (f.FullName) & FileAttributes.Directory) != FileAttributes.Directory) {
+				Directory.CreateDirectory (oldPath);
+				FileUtil.MoveFileOrDirectory (f.FullName, oldPath + f.Name);
+			}
+		}
+		*/
+
+		AssetBundleManifest manifest = BuildPipeline.BuildAssetBundles ("Assets/NaviSDK/AssetBundleOutput/", BuildAssetBundleOptions.None, BuildTarget.Android);
+		//Debug.Log ( manifest.GetAllAssetBundles()[0] );
+
+		//removing all the junk files created by the asset bundle
+		DirectoryInfo info = new DirectoryInfo (OUTPUT_PATH);
+		FileInfo[] files = info.GetFiles ();
+		foreach (FileInfo f in files) {
+			if (f.Name.Contains (".manifest") || f.Name.Contains ("AssetBundle") || f.Name.Contains ("meta")) {
+				FileUtil.DeleteFileOrDirectory (f.FullName);
+			} else if (!f.Name.Contains (".txt")) {
+				FileUtil.MoveFileOrDirectory (f.FullName, f.FullName + "_" + System.DateTime.Now.ToFileTime() + "_Android.txt");
+			}
 		}
 
-
-		BuildPipeline.BuildAssetBundles ("Assets/NaviSDK/AssetBundleOutput", BuildAssetBundleOptions.None, BuildTarget.Android | BuildTarget.iOS | BuildTarget.StandaloneWindows);
+		manifest = BuildPipeline.BuildAssetBundles ("Assets/NaviSDK/AssetBundleOutput/", BuildAssetBundleOptions.None, BuildTarget.iOS);
 		info = new DirectoryInfo (OUTPUT_PATH);
 		files = info.GetFiles ();
 		foreach (FileInfo f in files) {
 			if (f.Name.Contains (".manifest") || f.Name.Contains ("AssetBundle") || f.Name.Contains ("meta")) {
 				FileUtil.DeleteFileOrDirectory (f.FullName);
-			} else {
-				FileUtil.MoveFileOrDirectory (f.FullName, f.FullName + ".txt");
+			} else if (!f.Name.Contains (".txt")) {
+				FileUtil.MoveFileOrDirectory (f.FullName, f.FullName + "_" + System.DateTime.Now.ToFileTime() + "_iOS.txt");
 			}
 		}
+
 	}
 }

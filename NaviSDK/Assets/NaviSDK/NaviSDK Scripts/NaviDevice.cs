@@ -44,6 +44,9 @@ public class NaviDevice : MonoBehaviour {
 	[HideInInspector]
 	public int DeviceHeight; 
 
+	[HideInInspector]
+	public RuntimePlatform devicePlatform = RuntimePlatform.Android; //default to Android since most of our work has been using Android
+
 	private float lastSynchronizationTime = 0f;
 	private float syncDelay = 0f;
 	private float syncTime = 0f;

@@ -102,6 +102,7 @@ public class NaviConnectionSDK : MonoBehaviour {
 
 	private const string TOUCH_METHOD_ID = "TouchIO";
 	private const string SET_SIZE_METHOD_ID = "SetSize";
+	private const string SEND_PLATFORM_METHOD_ID = "SendPlatform";
 
 	private const string OPEN_KEYBOARD_ID = "OpenKey";
 	private const string CLOSE_KEYBOARD_ID = "CloseKey";
@@ -716,6 +717,8 @@ public class NaviConnectionSDK : MonoBehaviour {
 			TouchManager.ProcessTouch (playerID, ts);
 		} else if (rpcData.methodName.Equals (SET_SIZE_METHOD_ID)) {
 			dev.SetServerScreenSize ((int)rpcData.args [0], (int)rpcData.args [1]);
+		} else if (rpcData.methodName.Equals (SEND_PLATFORM_METHOD_ID)) {
+			dev.devicePlatform = (RuntimePlatform) rpcData.args [0];
 		} else if (rpcData.methodName.Equals (SEND_KEYBOARD_ID)) {
 			if (OnKeyboardText != null)
 				OnKeyboardText (playerID, (string)rpcData.args [0]);
