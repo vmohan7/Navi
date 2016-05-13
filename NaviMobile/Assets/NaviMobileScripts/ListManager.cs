@@ -35,6 +35,8 @@ public class ListManager : MonoBehaviour {
 				currentItems.Clear ();
 
 				CreateList ();
+			} else if (currentItems.Count == 1) {
+				currentItems [0].gameObject.GetComponent<IPConnection> ().Connect ();
 			}
 				
 			yield return new WaitForSeconds (REFRESH_RATE);

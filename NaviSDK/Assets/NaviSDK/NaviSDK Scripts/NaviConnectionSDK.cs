@@ -103,6 +103,9 @@ public class NaviConnectionSDK : MonoBehaviour {
 	private const string GAMEOBJ_DUP_ID = "DupGameObject";
 	private const string GAMEOBJ_DEL_ID = "DeleteGameObject";
 
+	private const string COMP_METHOD_ID = "CompMethod";
+	private const string COMP_PROP_ID = "CompProp";
+
 	private const string TOUCH_METHOD_ID = "TouchIO";
 	private const string SET_SIZE_METHOD_ID = "SetSize";
 	private const string SEND_PLATFORM_METHOD_ID = "SendPlatform";
@@ -366,6 +369,53 @@ public class NaviConnectionSDK : MonoBehaviour {
 		rpc.args [2] = location.y;
 		rpc.args [3] = location.z;
 		rpc.args [4] = time;
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
+	}
+
+	/// <summary>
+	/// If an asset bundle has been sent to the screen, this methd allows you to edit any component on game objects in the asset bundle. if there are no parameters, set parameters to null
+	/// </summary>
+	public void CallComponentMethod(int player_id, string objName, string componentName, string methodName, object[] parameters){
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		//send player id
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = COMP_METHOD_ID;
+		rpc.args = new object[5];
+		rpc.args [0] = objName;
+		rpc.args [1] = componentName;
+		rpc.args [2] = methodName;
+		rpc.args [3] = parameters;
+		formatter.Serialize(stream, rpc);
+		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
+	}
+
+	/// <summary>
+	/// If an asset bundle has been sent to the screen, this method allows you to edit any component on game objects in the asset bundle. if there are no indices, set indices to null
+	/// </summary>
+	public void UpdateComponentProperty(int player_id, string objName, string componentName, string propName, object value, object[] indicies){
+		int connection_id = GetPlayerPose (player_id).connectionID;
+
+		BinaryFormatter formatter = new BinaryFormatter();
+		byte[] buffer = new byte[BUFFER_SIZE];
+		Stream stream = new MemoryStream(buffer);
+		byte error;
+
+		//send player id
+		RPCSerializer rpc = new RPCSerializer();
+		rpc.methodName = COMP_PROP_ID;
+		rpc.args = new object[5];
+		rpc.args [0] = objName;
+		rpc.args [1] = componentName;
+		rpc.args [2] = propName;
+		rpc.args [3] = value;
+		rpc.args [3] = indicies;
 		formatter.Serialize(stream, rpc);
 		NetworkTransport.Send(socketID, connection_id, myReliableChannelId, buffer, buffer.Length, out error); 
 	}

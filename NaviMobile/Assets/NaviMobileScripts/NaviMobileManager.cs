@@ -41,7 +41,10 @@ public class NaviMobileManager : MonoBehaviour {
 
 	public static NaviMobileManager Instance; //the single instance of this class
 
+	[HideInInspector]
 	public int playerNumber = 0;
+
+	[HideInInspector]
 	public string displayMessage = "";
 
 	private UdpClient receiver; //the object that connects to the VR device
@@ -50,6 +53,7 @@ public class NaviMobileManager : MonoBehaviour {
 	private int socketID;
 	private int naviConnectionID = -1; //set once the devices connect to each other
 
+	[HideInInspector]
 	public List<string> possibleConnections = new List<string> ();
 
 	private int myReiliableChannelId;
@@ -92,6 +96,9 @@ public class NaviMobileManager : MonoBehaviour {
 	private const string GAMEOBJ_RENDER_ID = "SetGameObjRendState";
 	private const string GAMEOBJ_DUP_ID = "DupGameObject";
 	private const string GAMEOBJ_DEL_ID = "DeleteGameObject";
+
+	private const string COMP_METHOD_ID = "CompMethod";
+	private const string COMP_PROP_ID = "CompProp";
 	
 	private const string TOUCH_METHOD_ID = "TouchIO";
 	private const string SET_SIZE_METHOD_ID = "SetSize";
@@ -112,8 +119,6 @@ public class NaviMobileManager : MonoBehaviour {
 	///  Initalize before the scene loads
 	/// </summary>
 	void Awake () {
-		AudioListener.volume = 0f; //get audio from the VR device not the smart device
-		
 		if (Instance == null)
 			Instance = this;
 		
@@ -331,6 +336,24 @@ public class NaviMobileManager : MonoBehaviour {
 					newObj.transform.rotation = new Quaternion ((float)rpcData.args [5], (float)rpcData.args [6], (float)rpcData.args [7], (float)rpcData.args [8]); //arg 5,6,7,8 are x,y,z,w
 				}
 			}
+		} else if (rpcData.methodName.Equals (COMP_METHOD_ID)) {
+			GameObject obj = GameObject.Find ((string)rpcData.args [0]); //0 arg is string of the name of the object
+			if (obj != null) {
+				if (rpcData.args.Length > 3) {
+					CallMethod(obj, (string )rpcData.args [1], (string)rpcData.args [2], (object[])rpcData.args [3]);
+				} else {
+					CallMethod(obj, (string )rpcData.args [1], (string)rpcData.args [2], null);
+				}
+			}
+		} else if (rpcData.methodName.Equals (COMP_PROP_ID)) {
+			GameObject obj = GameObject.Find ((string)rpcData.args [0]); //0 arg is string of the name of the object
+			if (obj != null) {
+				if (rpcData.args.Length > 4) {
+					UpdateProperty(obj, (string )rpcData.args [1], (string)rpcData.args [2], rpcData.args [3], (object[] )rpcData.args [4]);
+				} else {
+					UpdateProperty(obj, (string )rpcData.args [1], (string)rpcData.args [2], rpcData.args [3], null);
+				}
+			}
 		} else if (rpcData.methodName.Equals (OPEN_KEYBOARD_ID)) {
 			if (rpcData.args.Length == 2) {
 				RequestKeyboard ((string)rpcData.args [0], (bool)rpcData.args [1]);
@@ -452,8 +475,8 @@ public class NaviMobileManager : MonoBehaviour {
 	/// <summary>
 	/// Animates an object to move to a given destination
 	/// </summary>
-	private IEnumerator AnimateObj(GameObject gameObject, Vector3 dest, float timeInSec){
-		Vector3 start = gameObject.transform.position;
+	private IEnumerator AnimateObj(GameObject gObject, Vector3 dest, float timeInSec){
+		Vector3 start = gObject.transform.position;
 		float time = 0f;
 
 		while (time < timeInSec) {
@@ -463,6 +486,59 @@ public class NaviMobileManager : MonoBehaviour {
 		}
 
 	}
+
+	/// <summary>
+	/// Decodes the Object's class recusively 
+	/// </summary>
+	private object DecodeObject(object obj) {
+		if (obj.GetType () == typeof(ObjectSerializer)) {
+			ObjectSerializer serObj = (ObjectSerializer) obj;
+			object[] parameters = new object[ serObj.args.Length ];
+
+			for(int i = 0; i < serObj.args.Length; i++) {
+				parameters [i] = DecodeObject(serObj.args [i]); //recursively get the correct object
+			}
+
+			return Activator.CreateInstance (serObj.className, parameters);
+
+		} else {
+			return obj;
+		}
+			
+	}
+
+	/// <summary>
+	/// Enables the SDK to update any component that is set by the asset bundle
+	/// </summary>
+	private void CallMethod(GameObject gObject, string componentName, string methodName, object[] serializedParams) {
+		if (gObject.tag != "Navi") {
+			Component comp = gObject.GetComponent (componentName);
+			System.Type[] types = null;
+			object[] parameters = null;
+
+			if (serializedParams != null) {
+				parameters = new object[serializedParams.Length];
+				types = new System.Type[parameters.Length];
+				for (int i = 0; i < serializedParams.Length; i++) {
+					parameters [i] = DecodeObject (serializedParams[i]);
+					types [i] = parameters [i].GetType ();
+				}
+			}
+			
+			object result = comp.GetType ().GetMethod (methodName, types).Invoke (comp, parameters);
+		}
+	}
+
+	/// <summary>
+	/// Enables the SDK to update any component that is set by the asset bundle
+	/// </summary>
+	private void UpdateProperty(GameObject gObject, string componentName, string propName, object value, object[] index) {
+		if (gObject.tag != "Navi") {
+			Component comp = gObject.GetComponent (componentName);
+			comp.GetType ().GetProperty (propName).SetValue(comp, DecodeObject(value) , index);
+		}
+	}
+
 
 	/// <summary>
 	/// This method handles when the VR display disconnects in order to restart the app and listen for a new connection
